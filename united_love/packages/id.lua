@@ -1,4 +1,4 @@
-Object = require "packages.classic"
+Object = require "united_love.packages.classic"
 
 local Id = Object:extend()
 

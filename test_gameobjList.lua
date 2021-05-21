@@ -12,7 +12,13 @@
 -- Just remember... if you did first method, PLEASE REMOVE variable like "<Name>=nill"  or it will DISRUPT the GamObject.destroy.
 -- and it may cause serious memory overflow problem.
 
-require "gameobj"
+
+require "united_love.united_love" 
+
+
+-- if your united_love module folder is in the /package folder, please like this;
+-- package.path = package.path .. ";packages/?.lua
+-- require "united_love.united_love"
 
 -- For here, declare GameObjects, which need to be decleared before game start.
 

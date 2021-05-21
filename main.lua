@@ -4,7 +4,7 @@
 -- where gameobj are decleared.
 --
 
-Main = require "gameobjList"
+Main = require "test_gameobjList"
 
 --main thread
 -- :warning! Cashing the component like "trans = gameobj.transform" or "obj = gameobj" to referencing

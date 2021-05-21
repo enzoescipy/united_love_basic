@@ -5,10 +5,10 @@
 -- its method name will like Transform => gameobj.transform
 --
 
-local Object = require "packages.classic"
-local queue = require "packages.queue"
-local clone = require "packages.clone"
-local ID = require "packages.id"
+local Object = require "united_love.packages.classic"
+local queue = require "united_love.packages.queue"
+local clone = require "united_love.packages.clone"
+local ID = require "united_love.packages.id"
 
 
 -- Transform

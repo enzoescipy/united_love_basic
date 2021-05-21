@@ -1,0 +1,1 @@
+require "united_love.gameobj"
