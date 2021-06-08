@@ -99,6 +99,38 @@ function GameObject:explode()
   self.isAlive = false
 end
 
+function GameObject:inactivate()
+  self.isAlive = false
+  if self.transform ~= nil then
+    self.transform.isAlive = false
+  end
+  if self.graphics ~= nil then
+    self.graphics.isAlive = false
+  end
+  if self.folder == nil then
+    return
+  end
+  for i = 1, #self.folder.gbjstore do
+    self.folder.gbjstore[i]:inactivate()
+  end
+end
+
+function GameObject:reactivate()
+  self.isAlive = true
+  if self.transform ~= nil then
+    self.transform.isAlive = true
+  end
+  if self.graphics ~= nil then
+    self.graphics.isAlive = true
+  end
+  if self.folder == nil then
+    return
+  end
+  for i = 1, #self.folder.gbjstore do
+    self.folder.gbjstore[i]:reactivate()
+  end
+end
+
 -- attach and detach components.
 function GameObject:attach(componentName)
   if componentName == "T" then

@@ -65,6 +65,11 @@ end
 local MAIN = GameObject("HIERARCHY", "F")
 MAIN.folder:include(Apple)
 MAIN.folder:include(Banana)
+
+Banana:inactivate()
+
+print(Banana_pic.isAlive, Banana_text.isAlive)
+
 return MAIN
 
 --

@@ -36,7 +36,21 @@ function Transform:new()
   self.varnamesRecursion = {0,0}
 end
 
+function Transform:inactivate()
+  if self.isAlive == false then
+    return
+  end
+  self.isAlive = false
+end
+
+function Transform:reactivate()
+  self.isAlive = true
+end
+
 function Transform:newvar(name)
+  if self.isAlive == false then
+    return
+  end
   self[name] = 0.0
   table.insert(self.varnames, name)
   self.varnamesInv[name] = #self.varnames
@@ -45,6 +59,9 @@ function Transform:newvar(name)
 end
 
 function Transform:delvar(name)
+  if self.isAlive == false then
+    return
+  end
   local index = self.varnamesInv[name]
   table.remove(self.varnames, index)
 
@@ -56,6 +73,9 @@ function Transform:delvar(name)
 end
 
 function Transform:aim(transform)
+  if self.isAlive == false then
+    return
+  end
   local index = self.aimednameInv[transform.id]
   if transform.type == "Transform"  then
     if  index == nil then
@@ -72,6 +92,9 @@ function Transform:aim(transform)
 end
 
 function Transform:notaim(transform)
+  if self.isAlive == false then
+    return
+  end
   local index = self.aimednameInv[transform.id]
   if transform.type == "Transform" and index ~= nil then
     self.aimednamecalled[transform.id] = self.aimednamecalled[transform.id] - 1
@@ -93,6 +116,9 @@ function Transform:notaim(transform)
 end
 
 function Transform:willreact(transform, mastername, targetname, willfunction)
+  if self.isAlive == false then
+    return
+  end
   local idseed = transform.id..":"..mastername
   if self.reactlist[idseed] == nil then
     self.reactlist[idseed] = {}
@@ -102,6 +128,9 @@ function Transform:willreact(transform, mastername, targetname, willfunction)
 end
 
 function Transform:notwillreact(transform, mastername, targetname)
+  if self.isAlive == false then
+    return
+  end
   local idseed = transform.id..":"..mastername
   local tab = self.reactlist[idseed]
   if tab == nil then
@@ -119,6 +148,9 @@ function Transform:notwillreact(transform, mastername, targetname)
 end
 
 function Transform:changevar(varname, value)
+  if self.isAlive == false then
+    return
+  end
   local oldvar = self[varname]
   local newvar = value
   self[varname] = value
@@ -131,6 +163,9 @@ function Transform:changevar(varname, value)
 end
 
 function Transform:call(transform, varname, oldvalue, newvalue)
+  if self.isAlive == false then
+    return
+  end
   local idseed = transform.id .. ":" .. varname
   local tab = self.reactlist[idseed]
   if tab == nil then
@@ -146,6 +181,9 @@ function Transform:call(transform, varname, oldvalue, newvalue)
 end
 
 function Transform:recursionTestChange(varname)
+  if self.isAlive == false then
+    return
+  end
 
   local index = self.varnamesInv[varname]
   self.varnamesRecursion[index] = self.varnamesRecursion[index] + 1
@@ -166,6 +204,9 @@ function Transform:recursionTestChange(varname)
 end
 
 function Transform:recursionTestCall(transform, varname)
+  if self.isAlive == false then
+    return
+  end
   
   local idseed = transform.id .. ":" .. varname
   local tab = self.reactlist[idseed]
@@ -234,7 +275,21 @@ function Graphics:new()
 end
 
 function Graphics:newjpgImage(imgdirectory)
+  if self.isAlive == false then
+    return
+  end
   self.drawable = love.graphics.newImage(imgdirectory)
+end
+
+function Graphics:inactivate()
+  if self.isAlive == false then
+    return
+  end
+  self.isAlive = false
+end
+
+function Graphics:reactivate()
+  self.isAlive = true
 end
 
 function Graphics:explode()
@@ -253,7 +308,6 @@ fID = ID("folder")
 function Folder:new()
   self.id = fID:makeid()
   self.type = "Folder"
-  self.isAlive = true
 
   self.gbjstore = {}
   self.gbjNamestore = {}
