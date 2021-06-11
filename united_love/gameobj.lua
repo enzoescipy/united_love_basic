@@ -21,11 +21,10 @@ Dictionary.namelistInv = {}
 
 
 -- create, search, destroy gameobj
-function GameObject:new(name, ...)
+function GameObject:new(name, ...) --please type "T" then type "G" because graphic component need transform component first.
   -- reject if there is already same name in gbjs.
   if Dictionary.namelistInv[name] ~= nil then
-    print("there is already same gameobject name in Hierarchy.")
-    donotusecauseitisforerrorrasing[1]=0
+    print("there is already same gameobject name in Hierarchy. order rejected.")
   end
   -- declare instance attribute
   self.name = name
@@ -37,9 +36,9 @@ function GameObject:new(name, ...)
   self.graphics = nil -- "G"
   self.folder = nil -- "F"
   --
-    
-  for i,v in ipairs({...}) do
-    self:attach(v)
+  local complist = {...}
+  for i = 1,#complist do
+    self:attach(complist[i])
   end
     
   -- fill the gbjlist, gbjnamelist, and its inv.
@@ -53,8 +52,7 @@ end
 function GameObject:copynew(newname)
   -- reject if there is already same name in gbjs.
   if Dictionary.namelistInv[newname] ~= nil then
-    print("there is already same gameobject name in Hierarchy.")
-    donotusecauseitisforerrorrasing[1]=0
+    print("there is already same gameobject name in Hierarchy. order rejected.")
   end
 
   local newgbj = clone.clone(self)
@@ -134,11 +132,15 @@ end
 -- attach and detach components.
 function GameObject:attach(componentName)
   if componentName == "T" then
-    self.transform = Transform()
+    self.transform = Transform(self)
   elseif componentName == "G" then
-    self.graphics = Graphics()
+    if self.transform ~= nil then
+      self.graphics = Graphics(self,self.transform)
+    else
+      print("Graphic component MUST NEED Transform component FIRST. order rejected.")
+    end
   elseif componentName == "F" then
-    self.folder = Folder()
+    self.folder = Folder(self)
   end
 end
 

@@ -15,4 +15,5 @@ function queue.insertleft(tables, data)
     tables[1] = data
 end
 
+
 return queue

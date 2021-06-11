@@ -1,3 +1,4 @@
+local parser = require "united_love.packages.parser"
 --
 -- gameobj
 -- 
@@ -14,16 +15,21 @@ Main = require "test_gameobjList"
 
 
 
+
+
+
 Banana = GameObject:find("Banana")
 Apple = GameObject:find("Apple")
 
 function love.load()
-
+  love.window.setMode(1024, 640)
 end
 
 function love.update(dt)
-  Banana.transform:changevar("x", Banana.transform.x + 10 * dt)
-  Apple.transform:changevar("x", Apple.transform.x + 10 * dt)
+  Banana.transform:changevar("x", Banana.transform.x + 1000 * dt)
+  --Apple.transform:changevar("x", Apple.transform.x + 100 * dt)
+
+  
   
 end
 
@@ -33,4 +39,16 @@ function love.draw()
       love.graphics.draw(gbj.graphics.drawable, gbj.transform.x, gbj.transform.y)
     end
   end
+
+  local function idDo(id)
+    local idbox = Graphics.renderer.renderTarget_pivotdata[id]
+    local x = idbox[1]
+    local y = idbox[2]
+    love.graphics.rectangle("fill", x,y,10,10)
+  end
+  Graphics.renderer.calculateALL()
+  Graphics.renderer.renderRectpivotDo(0,1024,0,640,idDo)
 end
+
+
+

@@ -12,17 +12,17 @@ local ID = require "united_love.packages.id"
 
 
 -- Transform
-
-
+-- #region
 Transform = Object:extend()
-tID = ID("transform")
-function Transform:new()
-  self.id = tID:makeid()
+function Transform:new(ownergbj)
+  self.id = ownergbj.name..".".."transform"
   self.isAlive = true
   self.type = "Transform"
 
+  -- x and y are graphical position connected to Graphical. component. DO NOT DELET THAT.
   self.x = 0.0
   self.y = 0.0
+  self.graphical = nil
 
   self.reactlist = {}
   self.aimlist = {}
@@ -139,7 +139,7 @@ function Transform:notwillreact(transform, mastername, targetname)
   end
   local varnameindex = tab[targetname]
   table.remove(self.reactlist[idseed], varnameindex)
-  for i,v in ipairs(self.reactlist[idseed]) do
+  for i,v in ipairs(self.reactlist[idseed]) do 
     self.reactlist[idseed][v[1]] = i
   end
   if #self.reactlist[idseed] == 0  then
@@ -151,6 +151,7 @@ function Transform:changevar(varname, value)
   if self.isAlive == false then
     return
   end
+
   local oldvar = self[varname]
   local newvar = value
   self[varname] = value
@@ -160,6 +161,16 @@ function Transform:changevar(varname, value)
       self:notaim(self.aimlist[i])
     end
   end
+
+  -- special changes for x and y to sending then Graphical renderer.
+  if self.graphical ~= nil then
+    if varname == "x" then
+      Graphics.renderer.compensate(value,nil,nil,nil, self.graphical.id)
+    elseif varname == "y" then
+      Graphics.renderer.compensate(nil,value,nil,nil, self.graphical.id)
+    end
+  end
+  
 end
 
 function Transform:call(transform, varname, oldvalue, newvalue)
@@ -261,17 +272,23 @@ function Transform:relation(transform1, var1, transform2, var2, willfunction)--t
     transform2:notwillreact(transform1, var1, var2)
   end
 end
---
+-- #endregion
 
 -- Graphics
+-- #region
 Graphics = Object:extend()
-
-function Graphics:new()
+function Graphics:new(ownergbj, transform)
   self.drawable = "invaild_value"
-  self.xsize = 0.0
-  self.ysize = 0.0
+  self.width = 0.0
+  self.height = 0.0
   self.isAlive = true
   self.type = "Graphics"
+  self.id = ownergbj.name..".".."graphics"
+  if transform ~= nil then
+    transform.graphical = self
+    Graphics.renderer.create(self.id)
+    Graphics.renderer.compensate(transform.x, transform.y, nil, nil, self.id)
+  end
 end
 
 function Graphics:newjpgImage(imgdirectory)
@@ -279,6 +296,9 @@ function Graphics:newjpgImage(imgdirectory)
     return
   end
   self.drawable = love.graphics.newImage(imgdirectory)
+  self.width =  self.drawable:getWidth()
+  self.height = self.drawable:getHeight()
+  Graphics.renderer.compensate(nil, nil, self.width, self.height, self.id)
 end
 
 function Graphics:inactivate()
@@ -299,14 +319,149 @@ function Graphics:explode()
 
   self.isAlive = false
 end
---
+
+-- Graphics.render
+Graphics.renderer = {}
+Graphics.renderer.renderTarget_pivotdata = {}
+Graphics.renderer.renderTarget_id = {}
+
+function Graphics.renderer.create(graphical_id)
+  table.insert(Graphics.renderer.renderTarget_id, graphical_id)
+  local databox = Graphics.renderer.renderTarget_pivotdata
+  databox[graphical_id.."-0"] = {nil, nil, nil, nil, nil} -- posx, posy, sizex, sizey, pivotamount
+  databox[graphical_id.."-1"] = {nil,nil}
+  databox[graphical_id.."-2"] = {nil,nil}
+  databox[graphical_id.."-3"] = {nil,nil}
+  databox[graphical_id.."-4"] = {nil,nil}
+end
+
+function Graphics.renderer.compensate(pos_x, pos_y, size_x, size_y,graphical_id,pivotamount)
+  pivotamount = 4
+  local valuetable = {pos_x, pos_y, size_x, size_y,pivotamount}
+  local databox = Graphics.renderer.renderTarget_pivotdata
+  local datas = databox[graphical_id.."-0"]
+  for i = 1,5 do
+    if valuetable[i] ~= nil then
+      datas[i] = valuetable[i]
+    end
+  end
+end
+
+function Graphics.renderer.calculateALL()
+  local idS = Graphics.renderer.renderTarget_id
+  for i=1, #idS do
+    local id = idS[i]
+    local databox = Graphics.renderer.renderTarget_pivotdata
+    local datas = databox[id.."-0"]
+    for i=1,4 do
+      if datas[i] == nil then
+        return
+      end
+    end
+  
+    local pos_x = datas[1]
+    local pos_y = datas[2]
+    local size_x = datas[3]
+    local size_y = datas[4]
+  
+    databox[id.."-1"] = {pos_x,pos_y}
+    databox[id.."-2"] = {pos_x + size_x,pos_y}
+    databox[id.."-3"] = {pos_x,pos_y + size_y}
+    databox[id.."-4"] = {pos_x + size_x,pos_y+size_y}
+  end
+
+end
+
+function Graphics.renderer.renderRectpivotGet(x1,x2,y1,y2)
+  local databox = Graphics.renderer.renderTarget_pivotdata
+  local returnbox = {}
+  for id, valuebox in pairs(databox) do
+    local x = valuebox[1]
+    local y = valuebox[2]
+    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil then
+      goto continue
+    end
+
+    if x1 <= x and x <= x2 and y1 <= y and y <= y2 then
+      table.insert(returnbox, id)
+    end
+    ::continue::
+  end
+  return returnbox
+end
+
+function Graphics.renderer.renderRectpivotDo(x1,x2,y1,y2,func)
+  local databox = Graphics.renderer.renderTarget_pivotdata
+  for id, valuebox in pairs(databox) do
+    local x = valuebox[1]
+    local y = valuebox[2]
+    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil then
+      goto continue
+    end
+
+    if x1 <= x and x <= x2 and y1 <= y and y <= y2 then
+      func(id)
+    end
+    ::continue::
+  end
+end
+
+function Graphics.renderer.renderRectIdGet(x1,x2,y1,y2)
+  local databox = Graphics.renderer.renderTarget_pivotdata
+  local idgetTable = {}
+  for id, valuebox in pairs(databox) do
+    local x = valuebox[1]
+    local y = valuebox[2]
+    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil or not (x1 <= x and x <= x2 and y1 <= y and y <= y2) then
+      goto continue
+    end
+    local id_real = string.sub(id, 1,string.len(id)-2)
+    if idgetTable[id_real] == nil then
+      idgetTable[id_real] = 1
+    else
+      idgetTable[id_real] = idgetTable[id_real] + 1
+    end
+    ::continue::
+  end
+  local returntable = {}
+  for idreal, pivotcount in pairs(idgetTable) do
+    if pivotcount == databox[idreal.."-0"][5] then
+      table.insert(returntable, idreal)
+    end
+  end
+  return returntable
+end
+
+function Graphics.renderer.renderRectIdDo(x1,x2,y1,y2,func)
+  local databox = Graphics.renderer.renderTarget_pivotdata
+  local idgetTable = {}
+  for id, valuebox in pairs(databox) do
+    local x = valuebox[1]
+    local y = valuebox[2]
+    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil or not (x1 <= x and x <= x2 and y1 <= y and y <= y2) then
+      goto continue
+    end
+    local id_real = string.sub(id, 1,string.len(id)-2)
+    if idgetTable[id_real] == nil then
+      idgetTable[id_real] = 1
+    else
+      idgetTable[id_real] = idgetTable[id_real] + 1
+    end
+    ::continue::
+  end
+  for idreal, pivotcount in pairs(idgetTable) do
+    if pivotcount == databox[idreal.."-0"][5] then
+      func(idreal)
+    end
+  end
+end
+-- #endregion
 
 -- Folder
+-- #region
 Folder = Object:extend()
-fID = ID("folder")
-
-function Folder:new()
-  self.id = fID:makeid()
+function Folder:new(ownergbj)
+  self.id = ownergbj.name..".".."folder"
   self.type = "Folder"
 
   self.gbjstore = {}
@@ -372,3 +527,4 @@ function Folder:explode()
 
   self.isAlive = false
 end
+-- #endregion

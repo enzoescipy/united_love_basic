@@ -1,3 +1,4 @@
+local parser = require "united_love.packages.parser"
 -- if you want to create new game object, there is two ways of that.
 --
 -- first method is, STATIC METHOD. just write <Name> = GameObject(<Name>) same as making new instance.
@@ -24,51 +25,48 @@ require "united_love.united_love"
 
 local Banana_pic = GameObject("Banana_pic","T","G")
 Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
-Banana_pic.transform.x = 100
-Banana_pic.transform.y = 100
+Banana_pic.transform:changevar("x",100)
+Banana_pic.transform:changevar("y",100)
 
 local Banana_text = GameObject("Banana_text","T","G")
 Banana_text.graphics.drawable = love.graphics.newText(love.graphics.getFont(), "Banana!")
-Banana_text.transform.x = 100
-Banana_text.transform.y = 75
-
+Banana_text.transform:changevar("x",100)
+Banana_text.transform:changevar("y",75)
+--[[
 local Apple_pic = GameObject("Apple_pic","T","G")
 Apple_pic.graphics:newjpgImage("exp_sprites/apple.jpg")
-Apple_pic.transform.x = 500
-Apple_pic.transform.y = 500
+Apple_pic.transform:changevar("x",100)
+Apple_pic.transform:changevar("y",100)
 
 local Apple_text = GameObject("Apple_text","T","G")
 Apple_text.graphics.drawable = love.graphics.newText(love.graphics.getFont(), "Apple!")
-Apple_text.transform.x = 500
-Apple_text.transform.y = 475
-
+Apple_text.transform:changevar("x",100)
+Apple_text.transform:changevar("y",75)
+]]
 local Banana = GameObject("Banana", "T", "F")
-Banana.transform.x = 100
-Banana.transform.y = 100
+Banana.transform:changevar("x",100)
+Banana.transform:changevar("y",100)
 Banana.folder:include(Banana_pic)
 Banana.folder:include(Banana_text)
 for i,gbj in ipairs(Banana.folder.gbjstore) do
   Transform:relation(Banana.transform, "x", gbj.transform, "x", Transform.presetfunc.follow)
   Transform:relation(Banana.transform, "y", gbj.transform, "y", Transform.presetfunc.follow)
 end
-
+--[[
 local Apple = GameObject("Apple", "T", "F")
-Apple.transform.x = 100
-Apple.transform.y = 100
+Apple.transform:changevar("x",100)
+Apple.transform:changevar("y",100)
 Apple.folder:include(Apple_pic)
 Apple.folder:include(Apple_text)
 for i,gbj in ipairs(Apple.folder.gbjstore) do
   Transform:relation(Apple.transform, "x", gbj.transform, "x", Transform.presetfunc.follow)
   Transform:relation(Apple.transform, "y", gbj.transform, "y", Transform.presetfunc.follow)
 end
-
+]]
 local MAIN = GameObject("HIERARCHY", "F")
-MAIN.folder:include(Apple)
+--MAIN.folder:include(Apple)
 MAIN.folder:include(Banana)
 
-Banana:inactivate()
-
-print(Banana_pic.isAlive, Banana_text.isAlive)
 
 return MAIN
 
