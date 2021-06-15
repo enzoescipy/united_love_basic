@@ -29,9 +29,9 @@ Banana_pic.transform:changevar("x",100)
 Banana_pic.transform:changevar("y",100)
 
 local Banana_text = GameObject("Banana_text","T","G")
-Banana_text.graphics.drawable = love.graphics.newText(love.graphics.getFont(), "Banana!")
+Banana_text.graphics:newText("Banana!", 15)
 Banana_text.transform:changevar("x",100)
-Banana_text.transform:changevar("y",75)
+Banana_text.transform:changevar("y",125)
 --[[
 local Apple_pic = GameObject("Apple_pic","T","G")
 Apple_pic.graphics:newjpgImage("exp_sprites/apple.jpg")
@@ -67,6 +67,14 @@ local MAIN = GameObject("HIERARCHY", "F")
 --MAIN.folder:include(Apple)
 MAIN.folder:include(Banana)
 
+
+Renderer_Main = Renderer()
+local Camera = GameObject("Camera","T")
+Camera.transform:changevar("x",512)
+Camera.transform:changevar("y",320)
+Renderer_Main:origin(Camera, 1024,640)
+Renderer_Main:recept(Banana_text)
+Renderer_Main:recept(Banana_pic)
 
 return MAIN
 

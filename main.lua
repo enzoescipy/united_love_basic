@@ -26,7 +26,7 @@ function love.load()
 end
 
 function love.update(dt)
-  Banana.transform:changevar("x", Banana.transform.x + 1000 * dt)
+  Banana.transform:changevar("x", Banana.transform.x + 100 * dt)
   --Apple.transform:changevar("x", Apple.transform.x + 100 * dt)
 
   
@@ -34,21 +34,12 @@ function love.update(dt)
 end
 
 function love.draw()
-  for i,gbj in ipairs(Dictionary.list) do
-    if gbj.transform ~= nil and gbj.graphics ~= nil then
-      love.graphics.draw(gbj.graphics.drawable, gbj.transform.x, gbj.transform.y)
-    end
-  end
 
-  local function idDo(id)
-    local idbox = Graphics.renderer.renderTarget_pivotdata[id]
-    local x = idbox[1]
-    local y = idbox[2]
-    love.graphics.rectangle("fill", x,y,10,10)
-  end
-  Graphics.renderer.calculateALL()
-  Graphics.renderer.renderRectpivotDo(0,1024,0,640,idDo)
+  Renderer_Main:refresh()
+  Renderer_Main:drawSpritesPivot()
+  Renderer_Main:drawALL()
+  local mainCanvas = Renderer_Main:getcanvas()
+  love.graphics.push()
+    love.graphics.draw(mainCanvas)
+  love.graphics.pop()
 end
-
-
-

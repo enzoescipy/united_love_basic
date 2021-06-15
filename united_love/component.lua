@@ -1,6 +1,7 @@
 --
 -- component
 -- 
+-- require order = 2
 -- where all kinds of component for gameobject from.
 -- its method name will like Transform => gameobj.transform
 --
@@ -10,6 +11,7 @@ local queue = require "united_love.packages.queue"
 local clone = require "united_love.packages.clone"
 local ID = require "united_love.packages.id"
 
+require "united_love.renderer"
 
 -- Transform
 -- #region
@@ -162,12 +164,12 @@ function Transform:changevar(varname, value)
     end
   end
 
-  -- special changes for x and y to sending then Graphical renderer.
+  -- special changes for x and y to sending then Graphical Renderer.
   if self.graphical ~= nil then
     if varname == "x" then
-      Graphics.renderer.compensate(value,nil,nil,nil, self.graphical.id)
+      Renderer.compensate(value,nil,nil,nil, self.graphical.id)
     elseif varname == "y" then
-      Graphics.renderer.compensate(nil,value,nil,nil, self.graphical.id)
+      Renderer.compensate(nil,value,nil,nil, self.graphical.id)
     end
   end
   
@@ -286,8 +288,8 @@ function Graphics:new(ownergbj, transform)
   self.id = ownergbj.name..".".."graphics"
   if transform ~= nil then
     transform.graphical = self
-    Graphics.renderer.create(self.id)
-    Graphics.renderer.compensate(transform.x, transform.y, nil, nil, self.id)
+    Renderer.createpivot(self.id)
+    Renderer.compensate(transform.x, transform.y, nil, nil, self.id)
   end
 end
 
@@ -298,7 +300,17 @@ function Graphics:newjpgImage(imgdirectory)
   self.drawable = love.graphics.newImage(imgdirectory)
   self.width =  self.drawable:getWidth()
   self.height = self.drawable:getHeight()
-  Graphics.renderer.compensate(nil, nil, self.width, self.height, self.id)
+  Renderer.compensate(nil, nil, self.width, self.height, self.id)
+end
+
+function Graphics:newText(text,sizepx)
+  if self.isAlive == false then
+    return
+  end
+  self.drawable = love.graphics.newText(love.graphics.newFont(sizepx), text)
+  self.width =  self.drawable:getWidth()
+  self.height = self.drawable:getHeight()
+  Renderer.compensate(nil, nil, self.width, self.height, self.id)
 end
 
 function Graphics:inactivate()
@@ -318,142 +330,6 @@ function Graphics:explode()
   end
 
   self.isAlive = false
-end
-
--- Graphics.render
-Graphics.renderer = {}
-Graphics.renderer.renderTarget_pivotdata = {}
-Graphics.renderer.renderTarget_id = {}
-
-function Graphics.renderer.create(graphical_id)
-  table.insert(Graphics.renderer.renderTarget_id, graphical_id)
-  local databox = Graphics.renderer.renderTarget_pivotdata
-  databox[graphical_id.."-0"] = {nil, nil, nil, nil, nil} -- posx, posy, sizex, sizey, pivotamount
-  databox[graphical_id.."-1"] = {nil,nil}
-  databox[graphical_id.."-2"] = {nil,nil}
-  databox[graphical_id.."-3"] = {nil,nil}
-  databox[graphical_id.."-4"] = {nil,nil}
-end
-
-function Graphics.renderer.compensate(pos_x, pos_y, size_x, size_y,graphical_id,pivotamount)
-  pivotamount = 4
-  local valuetable = {pos_x, pos_y, size_x, size_y,pivotamount}
-  local databox = Graphics.renderer.renderTarget_pivotdata
-  local datas = databox[graphical_id.."-0"]
-  for i = 1,5 do
-    if valuetable[i] ~= nil then
-      datas[i] = valuetable[i]
-    end
-  end
-end
-
-function Graphics.renderer.calculateALL()
-  local idS = Graphics.renderer.renderTarget_id
-  for i=1, #idS do
-    local id = idS[i]
-    local databox = Graphics.renderer.renderTarget_pivotdata
-    local datas = databox[id.."-0"]
-    for i=1,4 do
-      if datas[i] == nil then
-        return
-      end
-    end
-  
-    local pos_x = datas[1]
-    local pos_y = datas[2]
-    local size_x = datas[3]
-    local size_y = datas[4]
-  
-    databox[id.."-1"] = {pos_x,pos_y}
-    databox[id.."-2"] = {pos_x + size_x,pos_y}
-    databox[id.."-3"] = {pos_x,pos_y + size_y}
-    databox[id.."-4"] = {pos_x + size_x,pos_y+size_y}
-  end
-
-end
-
-function Graphics.renderer.renderRectpivotGet(x1,x2,y1,y2)
-  local databox = Graphics.renderer.renderTarget_pivotdata
-  local returnbox = {}
-  for id, valuebox in pairs(databox) do
-    local x = valuebox[1]
-    local y = valuebox[2]
-    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil then
-      goto continue
-    end
-
-    if x1 <= x and x <= x2 and y1 <= y and y <= y2 then
-      table.insert(returnbox, id)
-    end
-    ::continue::
-  end
-  return returnbox
-end
-
-function Graphics.renderer.renderRectpivotDo(x1,x2,y1,y2,func)
-  local databox = Graphics.renderer.renderTarget_pivotdata
-  for id, valuebox in pairs(databox) do
-    local x = valuebox[1]
-    local y = valuebox[2]
-    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil then
-      goto continue
-    end
-
-    if x1 <= x and x <= x2 and y1 <= y and y <= y2 then
-      func(id)
-    end
-    ::continue::
-  end
-end
-
-function Graphics.renderer.renderRectIdGet(x1,x2,y1,y2)
-  local databox = Graphics.renderer.renderTarget_pivotdata
-  local idgetTable = {}
-  for id, valuebox in pairs(databox) do
-    local x = valuebox[1]
-    local y = valuebox[2]
-    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil or not (x1 <= x and x <= x2 and y1 <= y and y <= y2) then
-      goto continue
-    end
-    local id_real = string.sub(id, 1,string.len(id)-2)
-    if idgetTable[id_real] == nil then
-      idgetTable[id_real] = 1
-    else
-      idgetTable[id_real] = idgetTable[id_real] + 1
-    end
-    ::continue::
-  end
-  local returntable = {}
-  for idreal, pivotcount in pairs(idgetTable) do
-    if pivotcount == databox[idreal.."-0"][5] then
-      table.insert(returntable, idreal)
-    end
-  end
-  return returntable
-end
-
-function Graphics.renderer.renderRectIdDo(x1,x2,y1,y2,func)
-  local databox = Graphics.renderer.renderTarget_pivotdata
-  local idgetTable = {}
-  for id, valuebox in pairs(databox) do
-    local x = valuebox[1]
-    local y = valuebox[2]
-    if string.sub(id, string.len(id),string.len(id)) == "0" or x == nil or y == nil or not (x1 <= x and x <= x2 and y1 <= y and y <= y2) then
-      goto continue
-    end
-    local id_real = string.sub(id, 1,string.len(id)-2)
-    if idgetTable[id_real] == nil then
-      idgetTable[id_real] = 1
-    else
-      idgetTable[id_real] = idgetTable[id_real] + 1
-    end
-    ::continue::
-  end
-  for idreal, pivotcount in pairs(idgetTable) do
-    if pivotcount == databox[idreal.."-0"][5] then
-      func(idreal)
-    end
-  end
 end
 -- #endregion
 
