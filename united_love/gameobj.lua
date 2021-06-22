@@ -5,9 +5,7 @@
 -- where gameobj are decleared.
 --
 local Object = require "united_love.packages.classic"
-local queue = require "united_love.packages.queue"
 local clone = require "united_love.packages.clone"
-local ID = require "united_love.packages.id"
 local parser = require "united_love.packages.parser"
 
 require "united_love.component"

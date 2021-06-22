@@ -10,6 +10,7 @@ local Object = require "united_love.packages.classic"
 local queue = require "united_love.packages.queue"
 local clone = require "united_love.packages.clone"
 local ID = require "united_love.packages.id"
+local linear = require "united_love.packages.linear"
 
 require "united_love.renderer"
 
@@ -21,9 +22,12 @@ function Transform:new(ownergbj)
   self.isAlive = true
   self.type = "Transform"
 
-  -- x and y are graphical position connected to Graphical. component. DO NOT DELET THAT.
-  self.x = 0.0
-  self.y = 0.0
+  -- x y r xs ys are graphical variables connected to Graphical. component. DO NOT DELET THAT.
+  self.x = 0.0 -- x pos
+  self.y = 0.0 -- y pos
+  self.r = 0.0 -- rotation radian
+  self.xs = 1.0 -- x scale
+  self.ys = 1.0 -- y scale
   self.graphical = nil
 
   self.reactlist = {}
@@ -31,11 +35,12 @@ function Transform:new(ownergbj)
   self.aimednameInv = {}
   self.aimednamecalled = {}
 
-  self.varnames = {"x", "y"}
+  self.varnames = {"x", "y","r","xs","ys"}
   self.varnamesInv = {}
-  self.varnamesInv["x"] = 1
-  self.varnamesInv["y"] = 2
-  self.varnamesRecursion = {0,0}
+  for i,v in ipairs(self.varnames) do
+    self.varnamesInv[v] = i
+  end
+  self.varnamesRecursion = {0,0,0,0,0,0,0}
 end
 
 function Transform:inactivate()
@@ -167,9 +172,15 @@ function Transform:changevar(varname, value)
   -- special changes for x and y to sending then Graphical Renderer.
   if self.graphical ~= nil then
     if varname == "x" then
-      Renderer.compensate(value,nil,nil,nil, self.graphical.id)
+      Renderer.compensate(value,nil,nil,nil,nil,nil,nil, self.graphical.id)
     elseif varname == "y" then
-      Renderer.compensate(nil,value,nil,nil, self.graphical.id)
+      Renderer.compensate(nil,value,nil,nil,nil,nil,nil, self.graphical.id)
+    elseif varname == "r" then
+      Renderer.compensate(nil,nil,value, nil,nil,nil,nil, self.graphical.id)
+    elseif varname == "xs" then
+      Renderer.compensate(nil,nil,nil, value,nil,nil,nil, self.graphical.id)
+    elseif varname == "ys" then
+      Renderer.compensate(nil,nil,nil, nil,value,nil,nil, self.graphical.id)
     end
   end
   
@@ -254,7 +265,7 @@ function Transform:explode()
 end
 
 --Transform.presetfunc
-Transform.presetfunc = {}
+Transform.presetfunc = {"x", "y","r","xs","ys"}
 function Transform.presetfunc.equal(oldvalue, newvalue, targetvalue)
   return newvalue
 end
@@ -265,13 +276,23 @@ end
 --
 
 --Transform class method
-function Transform:relation(transform1, var1, transform2, var2, willfunction)--transform1.var1 to transform2.var2, relation is willfunciton(oldvalue, newvalue, targetvalue)
+Transform.basicVarNames = {"x", "y","r","xs","ys"}
+
+function Transform.relation(transform1, var1, transform2, var2, willfunction)--transform1.var1 to transform2.var2, relation is willfunciton(oldvalue, newvalue, targetvalue)
   transform1:aim(transform2)
   transform2:willreact(transform1, var1, var2, willfunction)
   if transform1:recursionTestChange(var1) == true then
     print("recursion detected. Transform:relation rejected.")
     transform1:notaim(transform2)
     transform2:notwillreact(transform1, var1, var2)
+  end
+end
+
+function Transform.doRelationAll(master, slaves, relationfunc) --master to slaves relation. slaves = {skave1gbj, slave2gbj, ...}
+  for i,gbj in ipairs(slaves) do
+    for i,name in ipairs(Transform.basicVarNames)do
+      Transform.relation(master.transform, name, gbj.transform, name, relationfunc)
+    end
   end
 end
 -- #endregion
@@ -289,7 +310,7 @@ function Graphics:new(ownergbj, transform)
   if transform ~= nil then
     transform.graphical = self
     Renderer.createpivot(self.id)
-    Renderer.compensate(transform.x, transform.y, nil, nil, self.id)
+    Renderer.compensate(transform.x, transform.y,transform.r,transform.xs,transform.ys, nil, nil, self.id)
   end
 end
 
@@ -300,7 +321,7 @@ function Graphics:newjpgImage(imgdirectory)
   self.drawable = love.graphics.newImage(imgdirectory)
   self.width =  self.drawable:getWidth()
   self.height = self.drawable:getHeight()
-  Renderer.compensate(nil, nil, self.width, self.height, self.id)
+  Renderer.compensate(nil, nil,nil,nil,nil, self.width, self.height, self.id)
 end
 
 function Graphics:newText(text,sizepx)
@@ -310,7 +331,7 @@ function Graphics:newText(text,sizepx)
   self.drawable = love.graphics.newText(love.graphics.newFont(sizepx), text)
   self.width =  self.drawable:getWidth()
   self.height = self.drawable:getHeight()
-  Renderer.compensate(nil, nil, self.width, self.height, self.id)
+  Renderer.compensate(nil, nil,nil,nil,nil, self.width, self.height, self.id)
 end
 
 function Graphics:inactivate()

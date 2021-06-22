@@ -1,4 +1,5 @@
 local parser = require "united_love.packages.parser"
+
 -- if you want to create new game object, there is two ways of that.
 --
 -- first method is, STATIC METHOD. just write <Name> = GameObject(<Name>) same as making new instance.
@@ -25,13 +26,15 @@ require "united_love.united_love"
 
 local Banana_pic = GameObject("Banana_pic","T","G")
 Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
-Banana_pic.transform:changevar("x",100)
-Banana_pic.transform:changevar("y",100)
-
 local Banana_text = GameObject("Banana_text","T","G")
 Banana_text.graphics:newText("Banana!", 15)
-Banana_text.transform:changevar("x",100)
-Banana_text.transform:changevar("y",125)
+Banana_text.transform:changevar("y",100)
+local Banana = GameObject("Banana", "T", "F")
+Banana.folder:include(Banana_pic)
+Banana.folder:include(Banana_text)
+Transform.doRelationAll(Banana, Banana.folder.gbjstore, Transform.presetfunc.follow)
+Banana.transform:changevar("x",100)
+Banana.transform:changevar("y",300)
 --[[
 local Apple_pic = GameObject("Apple_pic","T","G")
 Apple_pic.graphics:newjpgImage("exp_sprites/apple.jpg")
@@ -43,15 +46,7 @@ Apple_text.graphics.drawable = love.graphics.newText(love.graphics.getFont(), "A
 Apple_text.transform:changevar("x",100)
 Apple_text.transform:changevar("y",75)
 ]]
-local Banana = GameObject("Banana", "T", "F")
-Banana.transform:changevar("x",100)
-Banana.transform:changevar("y",100)
-Banana.folder:include(Banana_pic)
-Banana.folder:include(Banana_text)
-for i,gbj in ipairs(Banana.folder.gbjstore) do
-  Transform:relation(Banana.transform, "x", gbj.transform, "x", Transform.presetfunc.follow)
-  Transform:relation(Banana.transform, "y", gbj.transform, "y", Transform.presetfunc.follow)
-end
+
 --[[
 local Apple = GameObject("Apple", "T", "F")
 Apple.transform:changevar("x",100)

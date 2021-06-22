@@ -1,3 +1,4 @@
+local linear = require "united_love.packages.linear"
 --
 -- renderer
 --
@@ -31,14 +32,14 @@ end
 --#region
 function Renderer.createpivot(graphical_id)
   local databox = Renderer.renderTarget_pivotmaker
-  databox[graphical_id] = {nil, nil, nil, nil} -- posx, posy, sizex, sizey, pivotamount
+  databox[graphical_id] = {nil, nil, nil,nil,nil, nil, nil} -- posx, posy, sizex, sizey, pivotamount
 end
 
-function Renderer.compensate(pos_x, pos_y, size_x, size_y,graphical_id)
-  local valuetable = {pos_x, pos_y, size_x, size_y}
+function Renderer.compensate(pos_x, pos_y,rotate, scale_x, scale_y, size_x, size_y,graphical_id)
+  local valuetable = {pos_x, pos_y, rotate, scale_x, scale_y, size_x, size_y}
   local databox = Renderer.renderTarget_pivotmaker
   local maker = databox[graphical_id]
-  for i = 1,5 do
+  for i = 1,7 do
     if valuetable[i] ~= nil then
       maker[i] = valuetable[i]
     end
@@ -126,13 +127,22 @@ function Renderer:refresh()
   
     local pos_x = maker[1]
     local pos_y = maker[2]
-    local size_x = maker[3]
-    local size_y = maker[4]
+    local rotate = maker[3]
+    local scale_x = maker[4]
+    local scale_y = maker[5]
+    local size_x = maker[6]
+    local size_y = maker[7]
   
-    pivotS[id.."-1"] = {pos_x,pos_y}
-    pivotS[id.."-2"] = {pos_x + size_x,pos_y}
-    pivotS[id.."-3"] = {pos_x,pos_y - size_y}
-    pivotS[id.."-4"] = {pos_x + size_x,pos_y-size_y}
+    pivotS[id.."-1"] = {pos_x - size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}
+    pivotS[id.."-2"] = {pos_x + size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}
+    pivotS[id.."-3"] = {pos_x- size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}
+    pivotS[id.."-4"] = {pos_x + size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}
+    if rotate ~= 0 then
+      pivotS[id.."-1"] = linear.rotate({pos_x,pos_y},pivotS[id.."-1"],rotate)
+      pivotS[id.."-2"] = linear.rotate({pos_x,pos_y},pivotS[id.."-2"],rotate)
+      pivotS[id.."-3"] = linear.rotate({pos_x,pos_y},pivotS[id.."-3"],rotate)
+      pivotS[id.."-4"] = linear.rotate({pos_x,pos_y},pivotS[id.."-4"],rotate)
+    end
   end
 end
 
@@ -181,7 +191,6 @@ function Renderer:drawSpritesPivot()
     local idbox = self.interest_pivotdata[id]
     local x = idbox[1]
     local y = idbox[2]
-    print(x,y,x - self.x1, self.y2 - y)
     love.graphics.rectangle("fill", x - self.x1, self.y2 - y, 1, 1)
   end
 
@@ -195,7 +204,8 @@ end
 function Renderer:drawALL()
   local function drawpos(id)
     local gbj = GameObject:find(GameObject:nameparse(id))
-    love.graphics.draw(gbj.graphics.drawable, gbj.transform.x - self.x1, self.y2 - gbj.transform.y)
+    local pivot1 = self.interest_pivotdata[id.."-1"]
+    love.graphics.draw(gbj.graphics.drawable, pivot1[1] - self.x1, self.y2 - pivot1[2])
   end
 
   love.graphics.setCanvas(self.canvas)
