@@ -40,7 +40,7 @@ function Transform:new(ownergbj)
   for i,v in ipairs(self.varnames) do
     self.varnamesInv[v] = i
   end
-  self.varnamesRecursion = {0,0,0,0,0,0,0}
+  self.varnamesRecursion = {0,0,0,0,0}
 end
 
 function Transform:inactivate()
@@ -159,15 +159,37 @@ function Transform:changevar(varname, value)
     return
   end
 
+  local index = self.varnamesInv[varname]
+  print(self.id, self.varnamesRecursion[index])
+  self.varnamesRecursion[index] = self.varnamesRecursion[index] + 1
+
+  if self.varnamesRecursion[index] >= 2 then
+    for i=1,#self.varnamesRecursion do
+      self.varnamesRecursion[i] = 0
+    end
+    return true
+  end
+
   local oldvar = self[varname]
   local newvar = value
   self[varname] = value
 
+  
+
   for i = 1, #self.aimlist do
-    if self.aimlist[i]:call(self, varname, oldvar, newvar) == "exploded" then
+    local result = self.aimlist[i]:call(self, varname, oldvar, newvar) 
+    if result == "exploded"  then
       self:notaim(self.aimlist[i])
+    elseif result == true then
+      for i=1,#self.varnamesRecursion do
+        self.varnamesRecursion[i] = 0
+      end
+      return true
     end
   end
+
+  
+  
 
   -- special changes for x and y to sending then Graphical Renderer.
   if self.graphical ~= nil then
@@ -183,7 +205,11 @@ function Transform:changevar(varname, value)
       Renderer.compensate(nil,nil,nil, nil,value,nil,nil, self.graphical.id)
     end
   end
-  
+
+  for i=1,#self.varnamesRecursion do
+    self.varnamesRecursion[i] = 0
+  end
+  return false
 end
 
 function Transform:call(transform, varname, oldvalue, newvalue)
@@ -200,7 +226,9 @@ function Transform:call(transform, varname, oldvalue, newvalue)
     local wilfunc = varpair[2]
     local targetvalue = self[varname]
     local result = wilfunc(oldvalue, newvalue, targetvalue)
-    self:changevar(varname, result)
+    if self:changevar(varname, result) == true then
+      return true
+    end
   end
 end
 
@@ -282,11 +310,13 @@ Transform.basicVarNames = {"x", "y","r","xs","ys"}
 function Transform.relation(transform1, var1, transform2, var2, willfunction)--transform1.var1 to transform2.var2, relation is willfunciton(oldvalue, newvalue, targetvalue)
   transform1:aim(transform2)
   transform2:willreact(transform1, var1, var2, willfunction)
+  --[[
   if transform1:recursionTestChange(var1) == true then
     print("recursion detected. Transform:relation rejected.")
     transform1:notaim(transform2)
     transform2:notwillreact(transform1, var1, var2)
   end
+  ]]
 end
 
 function Transform.doRelationAll(master, slaves, relationfunc) --master to slaves relation. slaves = {skave1gbj, slave2gbj, ...}

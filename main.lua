@@ -50,3 +50,6 @@ function love.draw()
     love.graphics.draw(mainCanvas)
   love.graphics.pop()
 end
+
+print("--test")
+print("--test")
