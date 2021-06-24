@@ -33,8 +33,10 @@ local Banana = GameObject("Banana", "T", "F")
 Banana.folder:include(Banana_pic)
 Banana.folder:include(Banana_text)
 Transform.doRelationAll(Banana, Banana.folder.gbjstore, Transform.presetfunc.follow)
-Banana.transform:changevar("x",100)
-Banana.transform:changevar("y",300)
+--Banana.transform:changevar("x",100)
+--Banana.transform:changevar("y",300)
+
+
 --[[
 local Apple_pic = GameObject("Apple_pic","T","G")
 Apple_pic.graphics:newjpgImage("exp_sprites/apple.jpg")
@@ -65,8 +67,8 @@ MAIN.folder:include(Banana)
 
 Renderer_Main = Renderer()
 local Camera = GameObject("Camera","T")
-Camera.transform:changevar("x",512)
-Camera.transform:changevar("y",320)
+--Camera.transform:changevar("x",512)
+--Camera.transform:changevar("y",320)
 Renderer_Main:origin(Camera, 1024,640)
 Renderer_Main:recept(Banana_text)
 Renderer_Main:recept(Banana_pic)

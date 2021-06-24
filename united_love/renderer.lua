@@ -204,8 +204,8 @@ end
 function Renderer:drawALL()
   local function drawpos(id)
     local gbj = GameObject:find(GameObject:nameparse(id))
-    local pivot1 = self.interest_pivotdata[id.."-1"]
-    love.graphics.draw(gbj.graphics.drawable, pivot1[1] - self.x1, self.y2 - pivot1[2])
+    local piv = Renderer.renderTarget_pivotmaker[id]
+    love.graphics.draw(gbj.graphics.drawable, piv[1] - self.x1, self.y2 - piv[2], -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5)
   end
 
   love.graphics.setCanvas(self.canvas)

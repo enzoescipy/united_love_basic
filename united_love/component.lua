@@ -273,6 +273,7 @@ end
 function Transform.presetfunc.follow(oldvalue, newvalue, targetvalue)
   return targetvalue - oldvalue + newvalue
 end 
+
 --
 
 --Transform class method
@@ -293,6 +294,34 @@ function Transform.doRelationAll(master, slaves, relationfunc) --master to slave
     for i,name in ipairs(Transform.basicVarNames)do
       Transform.relation(master.transform, name, gbj.transform, name, relationfunc)
     end
+  end
+end
+
+function Transform.refactor(transform1, var1,transform2, var2,transform3, var3, XtoYrelationfunc,YtoZrelationfunc) 
+  -- relation t1.v1 to t2.v2 will same but relation t2.v2 to t3.v3 will dosen't make t3 transform's aimlist. but just ignoring changevar system and change it directly. 
+  -- e.g) if you want to set relation like AA.x -> BB.x -> AA.x but not want to make recursion,
+  -- use like: Transform.refactor(AA.transform, "x", BB.transform, "x",AA.transform, "x", AAtoBBrelationfunc, BBtoAArelationfunc) 
+  -- then it will really do change BB.x when AA.x changes(by AAtoBBrelationfunc), and also change AA.x again immediately(by BBtoAArelationfunc),
+  -- without change BB.x again by recursion.
+
+  -- WARNING : last target (t3.v3 or AA.x) MUST NOT HAVE "ANY" other relationship. because this func will change last target and just ignoring transform's changevar system.
+  local function refactoror(oldvalue, newvalue, targetvalue)
+    local newvalue_y = XtoYrelationfunc(oldvalue, newvalue, targetvalue)
+    local oldvalue_y = targetvalue
+    transform3[var3] = YtoZrelationfunc(oldvalue_y, newvalue_y, transform3[var3])
+    return newvalue_y
+  end
+  Transform.relation(transform1, var1, transform2, var2, refactoror)
+end
+
+function Transform.unitylikeMastertoSlave(master, slaves) --master to slave relations. make relation of transformation like unity's parent and children.
+  for i,slav in ipairs(slaves) do
+    Transform.relation(master.transform, "x", slav.transform, "x", Transform.presetfunc.follow)
+    Transform.relation(master.transform, "y", slav.transform, "y", Transform.presetfunc.follow)
+    slav.transform:newvar("xlocal")
+    slav.transform:changevar("xlocal",0.0)
+    slav.transform:newvar("ylocal")
+    slav.transform:changevar("ylocal",0.0)
   end
 end
 -- #endregion

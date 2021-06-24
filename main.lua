@@ -26,12 +26,12 @@ function love.load()
 end
 
 function love.update(dt)
-  local banana_pos = {Banana.transform.x, Banana.transform.y}
-  banana_pos = linear.rotate({0,0},banana_pos,dt)
-  Banana.transform:changevar("x", banana_pos[1])
-  Banana.transform:changevar("y", banana_pos[2])
+  --local banana_pos = {Banana.transform.x, Banana.transform.y}
+  --banana_pos = linear.rotate({0,0},banana_pos,dt)
+  --Banana.transform:changevar("x", banana_pos[1])
+  --Banana.transform:changevar("y", banana_pos[2])
 
-  Banana.transform:changevar("r", Banana.transform.r + dt)
+  Banana.transform:changevar("x", Banana.transform.x + dt*100)
 
   --Apple.transform:changevar("x", Apple.transform.x + 100 * dt)
   --Banana.transform:changevar("x", Banana.transform.x + 10*dt)
