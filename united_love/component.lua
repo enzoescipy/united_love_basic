@@ -160,7 +160,6 @@ function Transform:changevar(varname, value)
   end
 
   local index = self.varnamesInv[varname]
-  print(self.id, self.varnamesRecursion[index])
   self.varnamesRecursion[index] = self.varnamesRecursion[index] + 1
 
   if self.varnamesRecursion[index] >= 2 then
@@ -187,9 +186,6 @@ function Transform:changevar(varname, value)
       return true
     end
   end
-
-  
-  
 
   -- special changes for x and y to sending then Graphical Renderer.
   if self.graphical ~= nil then
@@ -227,47 +223,6 @@ function Transform:call(transform, varname, oldvalue, newvalue)
     local targetvalue = self[varname]
     local result = wilfunc(oldvalue, newvalue, targetvalue)
     if self:changevar(varname, result) == true then
-      return true
-    end
-  end
-end
-
-function Transform:recursionTestChange(varname)
-  if self.isAlive == false then
-    return
-  end
-
-  local index = self.varnamesInv[varname]
-  self.varnamesRecursion[index] = self.varnamesRecursion[index] + 1
-
-  if self.varnamesRecursion[index] >= 2 then
-    self.varnamesRecursion[index] = 0
-    return true
-  end
-
-  for j = 1, #self.aimlist do
-    if self.aimlist[j]:recursionTestCall(self, varname) == true then
-      return true
-    end
-  end
-
-  self.varnamesRecursion[index] = 0
-  return false
-end
-
-function Transform:recursionTestCall(transform, varname)
-  if self.isAlive == false then
-    return
-  end
-  
-  local idseed = transform.id .. ":" .. varname
-  local tab = self.reactlist[idseed]
-  if tab == nil then
-    return
-  end
-  for i,varpair in ipairs(tab) do
-    local varname = varpair[1]
-    if self:recursionTestChange(varname) == true then
       return true
     end
   end
@@ -327,31 +282,45 @@ function Transform.doRelationAll(master, slaves, relationfunc) --master to slave
   end
 end
 
-function Transform.refactor(transform1, var1,transform2, var2,transform3, var3, XtoYrelationfunc,YtoZrelationfunc) 
-  -- relation t1.v1 to t2.v2 will same but relation t2.v2 to t3.v3 will dosen't make t3 transform's aimlist. but just ignoring changevar system and change it directly. 
-  -- e.g) if you want to set relation like AA.x -> BB.x -> AA.x but not want to make recursion,
-  -- use like: Transform.refactor(AA.transform, "x", BB.transform, "x",AA.transform, "x", AAtoBBrelationfunc, BBtoAArelationfunc) 
-  -- then it will really do change BB.x when AA.x changes(by AAtoBBrelationfunc), and also change AA.x again immediately(by BBtoAArelationfunc),
-  -- without change BB.x again by recursion.
-
-  -- WARNING : last target (t3.v3 or AA.x) MUST NOT HAVE "ANY" other relationship. because this func will change last target and just ignoring transform's changevar system.
-  local function refactoror(oldvalue, newvalue, targetvalue)
-    local newvalue_y = XtoYrelationfunc(oldvalue, newvalue, targetvalue)
-    local oldvalue_y = targetvalue
-    transform3[var3] = YtoZrelationfunc(oldvalue_y, newvalue_y, transform3[var3])
-    return newvalue_y
-  end
-  Transform.relation(transform1, var1, transform2, var2, refactoror)
-end
-
 function Transform.unitylikeMastertoSlave(master, slaves) --master to slave relations. make relation of transformation like unity's parent and children.
+  
   for i,slav in ipairs(slaves) do
     Transform.relation(master.transform, "x", slav.transform, "x", Transform.presetfunc.follow)
     Transform.relation(master.transform, "y", slav.transform, "y", Transform.presetfunc.follow)
-    slav.transform:newvar("xlocal")
-    slav.transform:changevar("xlocal",0.0)
-    slav.transform:newvar("ylocal")
-    slav.transform:changevar("ylocal",0.0)
+
+    Transform.relation(master.transform, "r", slav.transform, "r", Transform.presetfunc.follow)
+    local function xrotate(oldvalue, newvalue, targetvalue)
+      local master_pos = {master.transform.x, master.transform.y}
+      local slave_pos = {slav.transform.x, slav.transform.y}
+      local after_pos = linear.rotate(master_pos, slave_pos, newvalue - oldvalue)
+      
+      return after_pos[1]
+    end
+    local function yrotate(oldvalue, newvalue, targetvalue)
+      local master_pos = {master.transform.x, master.transform.y}
+      local slave_pos = {slav.transform.x, slav.transform.y}
+      local after_pos = linear.rotate(master_pos, slave_pos, newvalue - oldvalue)
+      return after_pos[2]
+    end
+    Transform.relation(master.transform, "r", slav.transform, "x", xrotate)
+    Transform.relation(master.transform, "r", slav.transform, "y", yrotate)
+
+    Transform.relation(master.transform, "xs", slav.transform, "xs", Transform.presetfunc.follow)
+    Transform.relation(master.transform, "ys", slav.transform, "ys", Transform.presetfunc.follow)
+    local function xscale(oldvalue, newvalue, targetvalue)
+      local master_pos = {master.transform.x, master.transform.y}
+      local slave_pos = {slav.transform.x, slav.transform.y}
+      local after_pos = linear.scale(master_pos, slave_pos, newvalue - oldvalue)
+      return after_pos[1]
+    end
+    local function yscale(oldvalue, newvalue, targetvalue)
+      local master_pos = {master.transform.x, master.transform.y}
+      local slave_pos = {slav.transform.x, slav.transform.y}
+      local after_pos = linear.scale(master_pos, slave_pos, newvalue - oldvalue)
+      return after_pos[2]
+    end
+    Transform.relation(master.transform, "xs", slav.transform, "x", xscale)
+    Transform.relation(master.transform, "ys", slav.transform, "y", yscale)
   end
 end
 -- #endregion

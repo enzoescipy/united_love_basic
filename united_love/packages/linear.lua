@@ -39,12 +39,27 @@ function linear.rotate(axis, target, angle) -- angle unit is radian.
     local radious = math.sqrt((p1 - o1) * (p1 - o1) + (p2 - o2) * (p2 - o2))
     local x = p1 - o1
     local y = p2 - o2
-    local polar_P = {radious, linear.toangle(x,y)}
+    local current_angle = linear.toangle(x,y)
+    local polar_P
+    if current_angle == "origin" or radious == 0 then
+        polar_P = {0,0}
+    else
+        polar_P = {radious, linear.toangle(x,y)}
+    end
 
     polar_P[2] = polar_P[2] + theta
     x = math.cos(polar_P[2]) * polar_P[1] + o1
     y = math.sin(polar_P[2]) * polar_P[1] + o2
     return {x,y}
+end
+
+function linear.scale(origin, target, scaleamount)
+    if type(origin) ~= "table" or type(target) ~= "table" or type(scaleamount) ~= "number" then
+        return "type err."
+    end
+
+    local abs_pos = {target[1] - origin[1], target[2] - origin[2]}
+    return {abs_pos[1] * scaleamount, abs_pos[2] * scaleamount}
 end
 
 function linear.toangle(x, y)
@@ -55,7 +70,7 @@ function linear.toangle(x, y)
         elseif y < 0 then
             tanAngle = - math.pi / 2
         else
-            return "valueErr"
+            return "origin"
         end
     else
         tanAngle = math.atan(y/x)
