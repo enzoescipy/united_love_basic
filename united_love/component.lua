@@ -208,7 +208,7 @@ function Transform:changevar(varname, value)
   return false
 end
 
-function Transform:call(transform, varname, oldvalue, newvalue)
+function Transform:call(transform, varname, owner_oldvalue)
   if self.isAlive == false then
     return
   end
@@ -218,13 +218,16 @@ function Transform:call(transform, varname, oldvalue, newvalue)
     return
   end
   for i,varpair in ipairs(tab) do
-    local varname = varpair[1]
+    local local_varname = varpair[1]
     local wilfunc = varpair[2]
-    local targetvalue = self[varname]
-    local result = wilfunc(oldvalue, newvalue, targetvalue)
-    if self:changevar(varname, result) == true then
+    local targetvalue = self[local_varname]
+    wilfunc(transform,varname,self,local_varname, owner_oldvalue)
+    --[[
+    local result = wilfunc(transform,varname,self,local_varname, owner_oldvalue)
+    if self:changevar(local_varname, result) == true then
       return true
     end
+    ]]
   end
 end
 
@@ -249,12 +252,25 @@ end
 
 --Transform.presetfunc
 Transform.presetfunc = {"x", "y","r","xs","ys"}
-function Transform.presetfunc.equal(oldvalue, newvalue, targetvalue)
-  return newvalue
+function Transform.presetfunc.equal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+  local owner_newvalue = ownerTransform[ownerName]
+  --local owner_oldvalue = owner_oldvalue
+  local target_newvalue --now making!!!!
+  local target_oldvalue = targetTransform[targetName]
+
+  target_newvalue = owner_newvalue
+
+  targetTransform:changevar(targetName, target_newvalue)
 end
 
-function Transform.presetfunc.follow(oldvalue, newvalue, targetvalue)
-  return targetvalue - oldvalue + newvalue
+function Transform.presetfunc.follow(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+  local owner_newvalue = ownerTransform[ownerName]
+  --local owner_oldvalue = owner_oldvalue
+  local target_newvalue --now making!!!!
+  local target_oldvalue = targetTransform[targetName]
+  target_newvalue = target_oldvalue - owner_oldvalue + owner_newvalue
+
+  targetTransform:changevar(targetName, target_newvalue)
 end 
 
 --
@@ -289,22 +305,20 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
     Transform.relation(master.transform, "y", slav.transform, "y", Transform.presetfunc.follow)
 
     Transform.relation(master.transform, "r", slav.transform, "r", Transform.presetfunc.follow)
-    local function xrotate(oldvalue, newvalue, targetvalue)
-      local master_pos = {master.transform.x, master.transform.y}
-      local slave_pos = {slav.transform.x, slav.transform.y}
-      local after_pos = linear.rotate(master_pos, slave_pos, newvalue - oldvalue)
+    local function rotate(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+      local owner_newvalue = ownerTransform[ownerName]
+      --local owner_oldvalue = owner_oldvalue
+      local target_newvalue --now making!!!!
+      local target_oldvalue = targetTransform[targetName]      
       
-      return after_pos[1]
+      local master_pos = {ownerTransform.x, ownerTransform.y}
+      local slave_pos = {targetTransform.x, targetTransform.y}
+      local after_pos = linear.rotate(master_pos, slave_pos, owner_newvalue - owner_oldvalue)
+      
+      targetTransform:changevar("x", after_pos[1])
+      targetTransform:changevar("y", after_pos[2])
     end
-    local function yrotate(oldvalue, newvalue, targetvalue)
-      local master_pos = {master.transform.x, master.transform.y}
-      local slave_pos = {slav.transform.x, slav.transform.y}
-      local after_pos = linear.rotate(master_pos, slave_pos, newvalue - oldvalue)
-      return after_pos[2]
-    end
-    Transform.relation(master.transform, "r", slav.transform, "x", xrotate)
-    Transform.relation(master.transform, "r", slav.transform, "y", yrotate)
-
+    Transform.relation(master.transform, "r", slav.transform, "any", rotate)
     Transform.relation(master.transform, "xs", slav.transform, "xs", Transform.presetfunc.follow)
     Transform.relation(master.transform, "ys", slav.transform, "ys", Transform.presetfunc.follow)
     local function xscale(oldvalue, newvalue, targetvalue)

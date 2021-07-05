@@ -29,16 +29,11 @@ function linear.rotate(axis, target, angle) -- angle unit is radian.
     if type(axis) ~= "table" or type(target) ~= "table" or type(angle) ~= "number" then
         return "type err."
     end
+    local x = target[1] - axis[1]
+    local y = target[2] - axis[2]
 
-    local p1 = target[1]
-    local p2 = target[2]
-    local o1 = axis[1]
-    local o2 = axis[2]
-    local theta = angle
-
-    local radious = math.sqrt((p1 - o1) * (p1 - o1) + (p2 - o2) * (p2 - o2))
-    local x = p1 - o1
-    local y = p2 - o2
+    local radious = math.sqrt(x*x + y*y)
+    
     local current_angle = linear.toangle(x,y)
     local polar_P
     if current_angle == "origin" or radious == 0 then
@@ -47,10 +42,10 @@ function linear.rotate(axis, target, angle) -- angle unit is radian.
         polar_P = {radious, linear.toangle(x,y)}
     end
 
-    polar_P[2] = polar_P[2] + theta
-    x = math.cos(polar_P[2]) * polar_P[1] + o1
-    y = math.sin(polar_P[2]) * polar_P[1] + o2
-    return {x,y}
+    polar_P[2] = polar_P[2] + angle
+    local new_x = math.cos(polar_P[2]) * polar_P[1] + axis[1]
+    local new_y = math.sin(polar_P[2]) * polar_P[1] + axis[2]
+    return {new_x,new_y}
 end
 
 function linear.scale(origin, target, scaleamount)
