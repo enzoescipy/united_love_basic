@@ -48,13 +48,23 @@ function linear.rotate(axis, target, angle) -- angle unit is radian.
     return {new_x,new_y}
 end
 
-function linear.scale(origin, target, scaleamount)
-    if type(origin) ~= "table" or type(target) ~= "table" or type(scaleamount) ~= "number" then
+function linear.scale(origin, target, xscaleamount, yscaleamount)
+    if type(origin) ~= "table" or type(target) ~= "table" or type(yscaleamount) ~= "number" or type(xscaleamount) ~= "number" then
         return "type err."
     end
 
     local abs_pos = {target[1] - origin[1], target[2] - origin[2]}
-    return {abs_pos[1] * scaleamount, abs_pos[2] * scaleamount}
+    return {abs_pos[1] * xscaleamount + origin[1], abs_pos[2] * yscaleamount + origin[2]}
+end
+
+function linear.angular_scale(origin, target, xscaleamount, yscaleamount, angle)
+    if type(origin) ~= "table" or type(target) ~= "table" or type(yscaleamount) ~= "number" or type(xscaleamount) ~= "number" then
+        return "type err."
+    end
+
+    local original_targetpos = linear.rotate(origin, target, -angle)
+    local scaled_targetpos = linear.scale(origin, original_targetpos, xscaleamount, yscaleamount)
+    return linear.rotate(origin, scaled_targetpos, angle)
 end
 
 function linear.toangle(x, y)

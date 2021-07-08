@@ -304,7 +304,6 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
     Transform.relation(master.transform, "x", slav.transform, "x", Transform.presetfunc.follow)
     Transform.relation(master.transform, "y", slav.transform, "y", Transform.presetfunc.follow)
 
-    Transform.relation(master.transform, "r", slav.transform, "r", Transform.presetfunc.follow)
     local function rotate(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
       local owner_newvalue = ownerTransform[ownerName]
       --local owner_oldvalue = owner_oldvalue
@@ -318,23 +317,40 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
       targetTransform:changevar("x", after_pos[1])
       targetTransform:changevar("y", after_pos[2])
     end
+    Transform.relation(master.transform, "r", slav.transform, "r", Transform.presetfunc.follow)
     Transform.relation(master.transform, "r", slav.transform, "any", rotate)
+    
+    local function xscale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+      local owner_newvalue = ownerTransform[ownerName]
+      --local owner_oldvalue = owner_oldvalue
+      local target_newvalue --now making!!!!
+      local target_oldvalue = targetTransform[targetName]  
+
+      local master_pos = {ownerTransform.x, ownerTransform.y}
+      local slave_pos = {targetTransform.x, targetTransform.y}
+      local after_pos = linear.angular_scale(master_pos, slave_pos, owner_newvalue / owner_oldvalue,1.0,ownerTransform.r)
+      
+      targetTransform:changevar("x", after_pos[1])
+      targetTransform:changevar("y", after_pos[2])
+    end
+    local function yscale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+      local owner_newvalue = ownerTransform[ownerName]
+      --local owner_oldvalue = owner_oldvalue
+      local target_newvalue --now making!!!!
+      local target_oldvalue = targetTransform[targetName]  
+
+      local master_pos = {ownerTransform.x, ownerTransform.y}
+      local slave_pos = {targetTransform.x, targetTransform.y}
+      local after_pos = linear.angular_scale(master_pos, slave_pos, 1.0,owner_newvalue / owner_oldvalue,ownerTransform.r)
+      
+      targetTransform:changevar("x", after_pos[1])
+      targetTransform:changevar("y", after_pos[2])
+    end
+    
     Transform.relation(master.transform, "xs", slav.transform, "xs", Transform.presetfunc.follow)
     Transform.relation(master.transform, "ys", slav.transform, "ys", Transform.presetfunc.follow)
-    local function xscale(oldvalue, newvalue, targetvalue)
-      local master_pos = {master.transform.x, master.transform.y}
-      local slave_pos = {slav.transform.x, slav.transform.y}
-      local after_pos = linear.scale(master_pos, slave_pos, newvalue - oldvalue)
-      return after_pos[1]
-    end
-    local function yscale(oldvalue, newvalue, targetvalue)
-      local master_pos = {master.transform.x, master.transform.y}
-      local slave_pos = {slav.transform.x, slav.transform.y}
-      local after_pos = linear.scale(master_pos, slave_pos, newvalue - oldvalue)
-      return after_pos[2]
-    end
-    Transform.relation(master.transform, "xs", slav.transform, "x", xscale)
-    Transform.relation(master.transform, "ys", slav.transform, "y", yscale)
+    Transform.relation(master.transform, "xs", slav.transform, "any", xscale)
+    Transform.relation(master.transform, "ys", slav.transform, "any", yscale)
   end
 end
 -- #endregion
