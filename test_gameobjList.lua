@@ -30,51 +30,32 @@ require "united_love.united_love"
 
 -- end ::
 
-local Banana_pic = GameObject("Banana_pic","T","G")
-Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
---local Banana_text = GameObject("Banana_text","T","G")
---Banana_text.graphics:newText("Banana!", 15)
---Banana_text.transform:changevar("y",100)
-local Banana = GameObject("Banana", "T", "F")
-Banana.folder:include(Banana_pic)
---Banana.folder:include(Banana_text)
-Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
-
-
---[[
-local Apple_pic = GameObject("Apple_pic","T","G")
-Apple_pic.graphics:newjpgImage("exp_sprites/apple.jpg")
-Apple_pic.transform:changevar("x",100)
-Apple_pic.transform:changevar("y",100)
-
-local Apple_text = GameObject("Apple_text","T","G")
-Apple_text.graphics.drawable = love.graphics.newText(love.graphics.getFont(), "Apple!")
-Apple_text.transform:changevar("x",100)
-Apple_text.transform:changevar("y",75)
-]]
-
---[[
-local Apple = GameObject("Apple", "T", "F")
-Apple.transform:changevar("x",100)
-Apple.transform:changevar("y",100)
-Apple.folder:include(Apple_pic)
-Apple.folder:include(Apple_text)
-for i,gbj in ipairs(Apple.folder.gbjstore) do
-  Transform:relation(Apple.transform, "x", gbj.transform, "x", Transform.presetfunc.follow)
-  Transform:relation(Apple.transform, "y", gbj.transform, "y", Transform.presetfunc.follow)
-end
-]]
-local MAIN = GameObject("HIERARCHY", "F")
---MAIN.folder:include(Apple)
-MAIN.folder:include(Banana)
-
-
-local Renderer_cam1 = Renderer()
 local Camera = GameObject("Camera","T","G")
+local Renderer_cam1 = Renderer()
 Renderer_cam1:equip(Camera, 512,320)
-Renderer_cam1:recept_automatically(Banana)
 
-Renderer.Master:recept_directly(Camera)
+local banana_tab = {}
+for i = -1000,1000,1000 do
+  for j = -1000,1000,1000 do
+    local tempname = tostring(i).."_"..tostring(j)
+    local Banana_pic = GameObject(tempname.."pic","T","G")
+    Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
+    local Banana_text = GameObject(tempname.."_text","T","G")
+    Banana_text.graphics:newText("Banana!", 15)
+    Banana_text.transform:changevar("y",100)
+    local Banana = GameObject(tempname, "T", "F")
+    Banana.folder:include(Banana_pic)
+    Banana.folder:include(Banana_text)
+    Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
+    Banana.transform:changevar("x", i)
+    Banana.transform:changevar("y", j)
+    Renderer_cam1:recept_automatically(Banana)
+    table.insert(banana_tab, Banana)
+  end
+end
+
+
+
 
 
 

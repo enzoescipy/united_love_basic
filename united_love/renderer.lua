@@ -81,18 +81,43 @@ function Renderer:equip(gbj,width, height) -- gbj can be nil.
   self.height = height
   self.canvas = love.graphics.newCanvas(width,height)
   if (gbj ~= nil) then
-    self.transform = gbj.transform
+    local transforms = gbj.transform
     gbj.graphics:acceptNew(self.canvas)
-    center_x = self.transform.x
-    center_y = self.transform.y
+    center_x = transforms.x
+    center_y = transforms.y
+    Renderer.Master:recept_directly(gbj)
+    gbj.renderer = self
   end
   self.x1 = center_x - self.width / 2
   self.x2 = center_x + self.width / 2
   self.y1 = center_y - self.height / 2
   self.y2 = center_y + self.height / 2
 
-  
+  self.center_x = center_x
+  self.center_y = center_y
+
   self.owner = gbj
+
+  
+end
+
+function Renderer:resize(width, height,center_x, center_y) -- version for equip but not gbj included. raise error if equip() not already called. put nil value for not changing
+  if center_x ~= nil then
+    self.center_x = center_x
+  end
+  if center_y ~= nil then
+    self.center_y = center_y
+  end
+  if width ~= nil then
+    self.width = width
+  end
+  if height ~= nil then
+    self.height = height
+  end
+  self.x1 = self.center_x - self.width / 2
+  self.x2 = self.center_x + self.width / 2
+  self.y1 = self.center_y - self.height / 2
+  self.y2 = self.center_y + self.height / 2
 end
 
 function Renderer:recept_directly(gbj)
@@ -108,9 +133,7 @@ end
 function Renderer:recept_automatically(gbj)
   local dic = clone.dictionalize(gbj)
   for i,gbj in ipairs(dic) do
-    print(gbj.name)
     if gbj.graphics == nil then
-      print("gbj dosen't has any graphics component. order rejected.")
       goto continues
     end
     local id = gbj.graphics.id

@@ -23,10 +23,7 @@ function love.load()
 end
 
 function love.update(dt)
-  -- Banana.transform:changevar("r", Banana.transform.r + dt)
-  -- Banana.transform:changevar("ys", Banana.transform.ys + dt)
-  Banana.transform:changevar("xs", Banana.transform.xs + dt)
-  Cam1.transform:changevar("ys", Cam1.transform.ys + dt)
+  
 end
 
 function love.draw()
