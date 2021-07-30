@@ -1,27 +1,147 @@
 local linear = {}
 
-function linear.islineCrossing(l_start,l_end,m_start,m_end) -- each vars are table {1.0,2.3, ... } represent a vector.
+local FLANK = 0.00000000001
+local INF = 1/0
+local NAN = 0/0
+linear.FLANK = FLANK
+linear.INF = INF
+linear.NAN = NAN
+function linear.pointToPointDist(p1,p2)
+    return math.sqrt((p1[1]-p2[1]) * (p1[1]-p2[1]) + (p1[2]-p2[2]) * (p1[2]-p2[2]))
+end
+
+function linear.pointToPointDistSquared(p1,p2) -- faster ver. of linear.pointToPointDist(...)
+    return (p1[1]-p2[1]) * (p1[1]-p2[1]) + (p1[2]-p2[2]) * (p1[2]-p2[2])
+end
+
+function linear.islineCrossing(l_start,l_end,m_start,m_end,...) -- each vars are table {1.0,2.3, ... } represent a vector.
     -- check if two lines crossing each other.
     if type(l_start) ~= "table" or type(l_end) ~= "table" or type(m_start) ~= "table" or type(m_end) ~= "table" then
         return "type err."
     end
-
-    local p1 = l_start[1]
-    local p2 = l_start[2]
-    local p3 = l_end[1]
-    local p4 = l_end[2]
-    local m1 = m_start[1]
-    local m2 = m_start[2]
-    local m3 = m_end[1]
-    local m4 = m_end[2]
-
-    if ((m1 - m3)*(p2 - p4) - (m2 - m4)*(p1 - p3)) ~= 0.0 then
-        local x = (-(m1 - m3)*(p1*p4 - p2*p3) + (p1 - p3)*(m1*m4 - m2*m3))/((m1 - m3)*(p2 - p4) - (m2 - m4)*(p1 - p3))
-        if p1 <= x and x <= p3 and m1 <= x and x <= m3 then
-            return true
+    local faultnum
+    local x
+    local y
+    local l_slope = (l_end[2] - l_start[2]) / (l_end[1] - l_start[1])
+    local m_slope = (m_end[2] - m_start[2]) / (m_end[1] - m_start[1])
+    local abs_lsp = math.abs(l_slope)
+    local abs_msp = math.abs(m_slope)
+    if abs_lsp == INF or abs_msp == INF then
+        if abs_lsp == INF then
+            l_slope = "INF"
+            abs_lsp = "INF"
+            m_slope = (m_end[2] - m_start[2]) / (m_end[1] - m_start[1])
+        elseif abs_msp == INF then
+            m_slope = "INF"
+            abs_msp = "INF"
+            l_slope = (l_end[2] - l_start[2]) / (l_end[1] - l_start[1])
+        else
+            faultnum = 1
+            goto fault
         end
     end
+    
+    if abs_lsp == "INF" or abs_msp == "INF" then
+        
+        if abs_lsp == "INF" then
+            
+            y = m_slope*(l_start[1] - m_start[1]) + m_start[2]
+        elseif abs_msp == "INF" then
+            y = l_slope*(m_start[1] - l_start[1]) + l_start[2]
+        else
+            faultnum = 2
+            goto fault -- two lines are parallel.
+            
+        end
+    elseif abs_lsp <= FLANK or abs_msp <= FLANK then
+        
+        if abs_lsp <= FLANK then
+            
+            x = (m_slope*m_start[1] - m_start[2] + l_start[2]) / m_slope
+        elseif abs_msp <= FLANK then
+            x = (l_slope*l_start[1] - l_start[2] + m_start[2]) / l_slope
+        else
+            faultnum = 3
+            goto fault -- two lines are parallel.
+        end
+    else
+        x = ((l_slope*l_start[1]-m_slope*m_start[1]) - (l_start[2]-m_start[2])) / (l_slope - m_slope)
+    end
+    
+    if y ~= nil then
+        if l_start[2] <= y and y <= l_end[2] and m_start[2] <= y and y <= m_end[2] then
+            return true
+        else
+            faultnum = 4
+            goto fault
+        end
+    elseif x ~= nil then
+        
+        if l_start[1] <= x and x <= l_end[1] and m_start[1] <= x and x <= m_end[1] then 
+            return true
+        else
+            faultnum = 5
+        end
+    else
+        faultnum = 6
+        goto fault
+    end
+    ::fault::
     return false
+end
+
+function linear.lineToPointDist(point, l_start, l_end)
+    if type(l_start) ~= "table" or type(l_end) ~= "table" or type(point) ~= "table" then
+
+        return "type err."
+    end
+    local x_delta = (l_end[2] - l_start[2])
+    local y_delta = (l_end[2] - l_start[2])
+    if x_delta == 0 or y_delta == 0 then
+        if x_delta == 0 then
+            return math.abs(l_start[1] - point[1])
+        end
+        if y_delta == 0 then
+            return math.abs(l_start[2] - point[2])
+        end
+    else
+        local slope = (l_end[2] - l_start[2]) / (l_end[1] - l_start[1])
+    end
+        
+    local slope = (l_end[2] - l_start[2]) / (l_end[1] - l_start[1])
+    local value = math.abs(slope*point[1] - point[2] - slope*l_start[1] + l_start[2])
+    local dist = math.sqrt(slope*slope + 1)
+    -- line => slope*x - y - slope*k + f(k) = 0
+    return value / dist
+end
+
+function linear.isPointInsideBox(point, p1,p2,p3,p4,...) -- box must be perfect rectangle. error toleration can be added last parameter. p1->p2->p3->p4 line are MUST making a closed loop. <<NOT>> be like : {-1,1},{1,1},{-1,-1},{1,-1} 
+    local error_tolerate = {...}
+    error_tolerate = error_tolerate[1]
+    if error_tolerate == nil then
+        error_tolerate = FLANK
+    end
+
+    local length = 0
+    length = length + linear.lineToPointDist(point, p1, p2)
+    length = length + linear.lineToPointDist(point, p2, p3)
+    length = length + linear.lineToPointDist(point, p3, p4)
+    length = length + linear.lineToPointDist(point, p4, p1)
+
+    local round = 0
+    round = round + linear.pointToPointDist(p1,p2)
+    round = round + linear.pointToPointDist(p2,p3)
+    round = round + linear.pointToPointDist(p3,p4)
+    round = round + linear.pointToPointDist(p4,p1)
+    round = round / 2
+
+    if math.abs(round - length) <= error_tolerate then
+        return true
+    else
+        
+        return false
+    end
+
 end
 
 function linear.rotate(axis, target, angle) -- angle unit is radian.

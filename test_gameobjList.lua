@@ -24,14 +24,20 @@ require "united_love.united_love"
 
 -- For here, declare GameObjects, which need to be decleared before game start.
 
+-- setting section ::
+
+
+
+-- end ::
+
 local Banana_pic = GameObject("Banana_pic","T","G")
 Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
-local Banana_text = GameObject("Banana_text","T","G")
-Banana_text.graphics:newText("Banana!", 15)
-Banana_text.transform:changevar("y",100)
+--local Banana_text = GameObject("Banana_text","T","G")
+--Banana_text.graphics:newText("Banana!", 15)
+--Banana_text.transform:changevar("y",100)
 local Banana = GameObject("Banana", "T", "F")
 Banana.folder:include(Banana_pic)
-Banana.folder:include(Banana_text)
+--Banana.folder:include(Banana_text)
 Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
 
 
@@ -63,11 +69,13 @@ local MAIN = GameObject("HIERARCHY", "F")
 MAIN.folder:include(Banana)
 
 
-Renderer_Main = Renderer()
-local Camera = GameObject("Camera","T")
-Renderer_Main:origin(Camera, 1024,640)
-Renderer_Main:recept(Banana_text)
-Renderer_Main:recept(Banana_pic)
+local Renderer_cam1 = Renderer()
+local Camera = GameObject("Camera","T","G")
+Renderer_cam1:equip(Camera, 512,320)
+Renderer_cam1:recept_automatically(Banana)
+
+Renderer.Master:recept_directly(Camera)
+
 
 
 

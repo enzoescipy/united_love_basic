@@ -1,4 +1,5 @@
 local linear = require "united_love.packages.linear"
+local clone = require "united_love.packages.clone"
 --
 -- renderer
 --
@@ -14,6 +15,9 @@ local Object = require "united_love.packages.classic"
 -- Renderer
 Renderer = Object:extend()
 Renderer.renderTarget_pivotmaker = {}
+Renderer.renderers_list = {}
+Renderer.dict = {}
+
 function Renderer:new()
   self.interest_id = {}
   self.interest_pivotdata = {}
@@ -26,13 +30,20 @@ function Renderer:new()
 
   self.width = 0
   self.height = 0
+
+  self.owner = nil
+
+  table.insert(Renderer.renderers_list, self)
 end
 
 -- class method
 --#region
+
+
+
 function Renderer.createpivot(graphical_id)
   local databox = Renderer.renderTarget_pivotmaker
-  databox[graphical_id] = {nil, nil, nil,nil,nil, nil, nil} -- posx, posy, sizex, sizey, pivotamount
+  databox[graphical_id] = {nil, nil, nil,nil,nil, nil, nil} -- posx, posy, rotate, sizex, sizey, pivotamount
 end
 
 function Renderer.compensate(pos_x, pos_y,rotate, scale_x, scale_y, size_x, size_y,graphical_id)
@@ -45,49 +56,46 @@ function Renderer.compensate(pos_x, pos_y,rotate, scale_x, scale_y, size_x, size
     end
   end
 end
---[[
-function Renderer.calculateALL()
-  local idS = Renderer.renderTarget_id_SUPER
-  for i=1, #idS do
-    local id = idS[i]
-    local databox = Renderer.renderTarget_pivotdata_SUPER
-    local maker = databox[id]
-    for i=1,4 do
-      if maker[i] == nil then
-        return
-      end
-    end
-  
-    local pos_x = maker[1]
-    local pos_y = maker[2]
-    local size_x = maker[3]
-    local size_y = maker[4]
-  
-    databox[id.."-1"] = {pos_x,pos_y}
-    databox[id.."-2"] = {pos_x + size_x,pos_y}
-    databox[id.."-3"] = {pos_x,pos_y + size_y}
-    databox[id.."-4"] = {pos_x + size_x,pos_y+size_y}
-  end
 
+function Renderer.showFrame()
+  for i=1,#Renderer.renderers_list do
+    local Rs = Renderer.renderers_list[i]
+    Rs:refresh()
+    Rs:drawALL()
+  end
+  Renderer.Master:refresh()
+  Renderer.Master:drawALL()
+  love.graphics.push()
+    Graphics.drawImmideatly(Renderer.Master.canvas, Renderer.Master.width, Renderer.Master.height, 0,0)
+  love.graphics.pop()
 end
-]]
+
 --#endregion
 
 -- instance method
 --#region
-function Renderer:origin(gbj,width, height)
-  self.transform = gbj.transform
+function Renderer:equip(gbj,width, height) -- gbj can be nil.
+  local center_x = 0
+  local center_y = 0
   self.width = width
   self.height = height
-  local center_x = self.transform.x
-  local center_y = self.transform.y
+  self.canvas = love.graphics.newCanvas(width,height)
+  if (gbj ~= nil) then
+    self.transform = gbj.transform
+    gbj.graphics:acceptNew(self.canvas)
+    center_x = self.transform.x
+    center_y = self.transform.y
+  end
   self.x1 = center_x - self.width / 2
   self.x2 = center_x + self.width / 2
   self.y1 = center_y - self.height / 2
   self.y2 = center_y + self.height / 2
+
+  
+  self.owner = gbj
 end
 
-function Renderer:recept(gbj)
+function Renderer:recept_directly(gbj)
   local id = gbj.graphics.id
   if Renderer.renderTarget_pivotmaker[id] == nil then
       print("first create gbj.graphics then reception can complete(or first call Renderer.createpivot(id)). order rejected. ")
@@ -95,6 +103,24 @@ function Renderer:recept(gbj)
       return
   end
   table.insert(self.interest_id, id)
+end
+
+function Renderer:recept_automatically(gbj)
+  local dic = clone.dictionalize(gbj)
+  for i,gbj in ipairs(dic) do
+    print(gbj.name)
+    if gbj.graphics == nil then
+      print("gbj dosen't has any graphics component. order rejected.")
+      goto continues
+    end
+    local id = gbj.graphics.id
+    if Renderer.renderTarget_pivotmaker[id] == nil then
+        print("first create gbj.graphics then reception can complete(or first call Renderer.createpivot(id)). order rejected. ")
+        return
+    end
+    table.insert(self.interest_id, id)
+    ::continues::
+  end
 end
 
 function Renderer:exclude(gbj)
@@ -110,7 +136,7 @@ function Renderer:exclude(gbj)
 end
 
 function Renderer:refresh()
-  self.canvas = love.graphics.newCanvas()
+  self.canvas = love.graphics.newCanvas(self.width,self.height)
   self.interest_pivotdata = {}
 
   local idS = self.interest_id
@@ -132,11 +158,13 @@ function Renderer:refresh()
     local scale_y = maker[5]
     local size_x = maker[6]
     local size_y = maker[7]
+
+    
   
-    pivotS[id.."-1"] = {pos_x - size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}
-    pivotS[id.."-2"] = {pos_x + size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}
-    pivotS[id.."-3"] = {pos_x- size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}
-    pivotS[id.."-4"] = {pos_x + size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}
+    pivotS[id.."-1"] = {pos_x - size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}--upleft
+    pivotS[id.."-2"] = {pos_x + size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}--upright
+    pivotS[id.."-3"] = {pos_x- size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}--downleft
+    pivotS[id.."-4"] = {pos_x + size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}--downright
     if rotate ~= 0 then
       pivotS[id.."-1"] = linear.rotate({pos_x,pos_y},pivotS[id.."-1"],rotate)
       pivotS[id.."-2"] = linear.rotate({pos_x,pos_y},pivotS[id.."-2"],rotate)
@@ -144,6 +172,10 @@ function Renderer:refresh()
       pivotS[id.."-4"] = linear.rotate({pos_x,pos_y},pivotS[id.."-4"],rotate)
     end
   end
+  if self.owner ~= nil then
+    self.owner.graphics:acceptNew(self.canvas)
+  end
+  
 end
 
 function Renderer:renderRectpivotDo(func)
@@ -159,22 +191,57 @@ end
 
 function Renderer:renderRectIdDo(func)
   local idgetTable = {}
-  for id, valuebox in pairs(self.interest_pivotdata) do
-    local x = valuebox[1]
-    local y = valuebox[2]
-    if not (self.x1 <= x and x <= self.x2 and self.y1 <= y and y <= self.y2) then
+  
+  for i=1,#self.interest_id do
+    
+
+    local id = self.interest_id[i]
+    
+    local pivots = {}
+    table.insert(pivots, self.interest_pivotdata[id.."-1"])
+    table.insert(pivots, self.interest_pivotdata[id.."-2"])
+    table.insert(pivots, self.interest_pivotdata[id.."-3"])
+    table.insert(pivots, self.interest_pivotdata[id.."-4"])
+    -- if at least one pivot is inside the render_rect.
+    for j=1,4 do
+      local x = pivots[j][1]
+      local y = pivots[j][2]
+      if (self.x1 <= x and x <= self.x2 and self.y1 <= y and y <= self.y2) then
+        table.insert(idgetTable, id)
+        goto continue
+      end
+    end
+    local pivindex = {{1,2},{2,4},{4,3},{3,1}}
+    local renderes = {{self.x1,self.y2},
+                      {self.x2,self.y2},
+                      {self.x1,self.y1},
+                      {self.x2,self.y1}}
+    
+    -- if sprite edge and render_rect edge are crossing each other.
+    for p=1,4 do
+      for r=1,4 do
+        local pnum = pivindex[p]
+        local rnum = pivindex[r]
+        local l1 = pivots[pnum[1]]
+        local l2 = pivots[pnum[2]]
+        local m1 = renderes[rnum[1]]
+        local m2 = renderes[rnum[2]]
+        if linear.islineCrossing(l1,l2,m1,m2) == true then
+          table.insert(idgetTable, id)
+          goto continue
+        end
+      end
+    end
+    -- if sprite_rect is so big that render_rect is inside of the sprite_rect.
+    if linear.isPointInsideBox({self.x1,self.y1},pivots[1],pivots[2],pivots[4],pivots[3]) == true then
+      table.insert(idgetTable, id)
       goto continue
     end
-    local id_real = string.sub(id, 1,string.len(id)-2)
-    if idgetTable[id_real] == nil then
-      idgetTable[id_real] = 1
-    else
-      idgetTable[id_real] = idgetTable[id_real] + 1
-    end
+    --print(self.x1,self.y1,pivots[1][1],pivots[1][2],pivots[2][1],pivots[2][2],pivots[4][1],pivots[4][2],pivots[3][1],pivots[3][2])
     ::continue::
   end
-  for idreal, pivotcount in pairs(idgetTable) do
-    func(idreal)
+  for num, id in ipairs(idgetTable) do
+    func(id)
   end
 end
 
@@ -192,6 +259,7 @@ function Renderer:drawSpritesPivot()
     local x = idbox[1]
     local y = idbox[2]
     love.graphics.rectangle("fill", x - self.x1, self.y2 - y, 1, 1)
+    love.graphics.print(id,x - self.x1, self.y2 - y)
   end
 
   love.graphics.setCanvas(self.canvas)
@@ -215,8 +283,5 @@ function Renderer:drawALL()
   love.graphics.setCanvas()
 end
 
-function Renderer:getcanvas()
-  return self.canvas
-end
-
+Renderer.Master = Renderer()
 --#endregion

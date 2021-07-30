@@ -1,6 +1,6 @@
 local clone = {}
 
-function clone.takeout(tab)
+function clone.takeout(tab) -- return all elements in multi-order table.
     local collection = {}
     for i,v in pairs(tab) do
       if type(v) == "table" then
@@ -15,7 +15,7 @@ function clone.takeout(tab)
     return collection
 end
 
-function clone.dictionalize(mgbj)
+function clone.dictionalize(mgbj) -- return all gameobj in one gameobj include itself and all of the midle-order gbjs.
   local collection = {}
   table.insert(collection, mgbj)
     for i,cgbj in ipairs(mgbj.folder.gbjstore) do
