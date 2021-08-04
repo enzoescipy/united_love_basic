@@ -90,19 +90,25 @@ function linear.islineCrossing(l_start,l_end,m_start,m_end,...) -- each vars are
     return false
 end
 
-function linear.lineToPointDist(point, l_start, l_end)
-    if type(l_start) ~= "table" or type(l_end) ~= "table" or type(point) ~= "table" then
+function linear.lineToPointDist(point, l_start, l_end,...)
+    local error_tolerate = {...}
+    error_tolerate = error_tolerate[1]
+    if error_tolerate == nil then
+        error_tolerate = FLANK
+    end
 
+    if type(l_start) ~= "table" or type(l_end) ~= "table" or type(point) ~= "table" then
         return "type err."
     end
-    local x_delta = (l_end[2] - l_start[2])
-    local y_delta = (l_end[2] - l_start[2])
-    if x_delta == 0 or y_delta == 0 then
-        if x_delta == 0 then
+    local x_delta = math.abs(l_end[1] - l_start[1])
+    local y_delta = math.abs(l_end[2] - l_start[2])
+    if x_delta <= error_tolerate or y_delta <= error_tolerate then
+        if x_delta <= error_tolerate then
             return math.abs(l_start[1] - point[1])
         end
-        if y_delta == 0 then
+        if y_delta <= error_tolerate then
             return math.abs(l_start[2] - point[2])
+            
         end
     else
         local slope = (l_end[2] - l_start[2]) / (l_end[1] - l_start[1])
@@ -112,7 +118,11 @@ function linear.lineToPointDist(point, l_start, l_end)
     local value = math.abs(slope*point[1] - point[2] - slope*l_start[1] + l_start[2])
     local dist = math.sqrt(slope*slope + 1)
     -- line => slope*x - y - slope*k + f(k) = 0
-    return value / dist
+    if dist ~= 1/0 then
+        return value / dist
+    else
+        return 0
+    end
 end
 
 function linear.isPointInsideBox(point, p1,p2,p3,p4,...) -- box must be perfect rectangle. error toleration can be added last parameter. p1->p2->p3->p4 line are MUST making a closed loop. <<NOT>> be like : {-1,1},{1,1},{-1,-1},{1,-1} 

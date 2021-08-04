@@ -7,15 +7,15 @@ local linear = require "united_love.packages.linear"
 
 Main = require "test_gameobjList"
 
---main thread
--- :warning! Cashing the component like "trans = gameobj.transform" or "j" to referencing
+-- :warning! Cashing 
+--main threadthe component like "trans = gameobj.transform" or "j" to referencing
 -- component obj = gameobof some object easily and NOT DELETING cashed variables like "trans = nil" can
 -- cause MEMORY LEAK. DO delete cashed vars after using it.
 -- if you wanna destroy the cashed gameobject, please do it like "<Name> = nill"
 
 
 Banana = GameObject:find("Banana")
-Apple = GameObject:find("Apple")
+--Apple = GameObject:find("Apple")
 Cam1 = GameObject:find("Camera")
 
 function love.load()
@@ -23,7 +23,20 @@ function love.load()
 end
 
 function love.update(dt)
+  --[[
+  if love.keyboard.isDown("right") then
+    Banana.transform:changevar("r",Banana.transform.r - 0.001)
+  elseif love.keyboard.isDown("left") then
+    Banana.transform:changevar("r",Banana.transform.r + 0.001)
+  end
+  ]]
+  if love.keyboard.isDown("right") then
+    Renderer_cam1:refactor(nil,nil,nil,nil,Renderer_cam1.rotation - 0.01)
+  elseif love.keyboard.isDown("left") then
+    Renderer_cam1:refactor(nil,nil,nil,nil,Renderer_cam1.rotation + 0.01)
+  end
   
+
 end
 
 function love.draw()

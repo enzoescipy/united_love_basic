@@ -31,31 +31,25 @@ require "united_love.united_love"
 -- end ::
 
 local Camera = GameObject("Camera","T","G")
-local Renderer_cam1 = Renderer()
-Renderer_cam1:equip(Camera, 512,320)
+Renderer_cam1 = Renderer()
+Renderer_cam1:equip(Camera, 600,250)
 
 local banana_tab = {}
-for i = -1000,1000,1000 do
-  for j = -1000,1000,1000 do
-    local tempname = tostring(i).."_"..tostring(j)
-    local Banana_pic = GameObject(tempname.."pic","T","G")
-    Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
-    local Banana_text = GameObject(tempname.."_text","T","G")
-    Banana_text.graphics:newText("Banana!", 15)
-    Banana_text.transform:changevar("y",100)
-    local Banana = GameObject(tempname, "T", "F")
-    Banana.folder:include(Banana_pic)
-    Banana.folder:include(Banana_text)
-    Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
-    Banana.transform:changevar("x", i)
-    Banana.transform:changevar("y", j)
-    Renderer_cam1:recept_automatically(Banana)
-    table.insert(banana_tab, Banana)
-  end
-end
+local tempname = "Banana" --tostring(i).."_"..tostring(j)
+local Banana_pic = GameObject(tempname.."_pic","T","G")
+Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
+local Banana_text = GameObject(tempname.."_text","T","G")
+Banana_text.graphics:newText("Banana!", 15)
+Banana_text.transform:changevar("y",100)
+local Banana = GameObject(tempname, "T", "F")
+Banana.folder:include(Banana_pic)
+Banana.folder:include(Banana_text)
+Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
+Banana.transform:changevar("x",200)
 
 
-
+Renderer_cam1:recept_automatically(Banana)
+table.insert(banana_tab, Banana)
 
 
 

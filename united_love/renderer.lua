@@ -31,6 +31,8 @@ function Renderer:new()
   self.width = 0
   self.height = 0
 
+  self.rotation = 0
+
   self.owner = nil
 
   table.insert(Renderer.renderers_list, self)
@@ -62,6 +64,11 @@ function Renderer.showFrame()
     local Rs = Renderer.renderers_list[i]
     Rs:refresh()
     Rs:drawALL()
+
+    --debugmode
+    Rs:drawboundray()
+    Rs:drawSpritesPivot()
+    --end
   end
   Renderer.Master:refresh()
   Renderer.Master:drawALL()
@@ -101,7 +108,7 @@ function Renderer:equip(gbj,width, height) -- gbj can be nil.
   
 end
 
-function Renderer:resize(width, height,center_x, center_y) -- version for equip but not gbj included. raise error if equip() not already called. put nil value for not changing
+function Renderer:refactor(width, height,center_x, center_y,rotation) -- version for equip but not gbj included. raise error if equip() not already called. put nil value for not changing
   if center_x ~= nil then
     self.center_x = center_x
   end
@@ -113,6 +120,9 @@ function Renderer:resize(width, height,center_x, center_y) -- version for equip 
   end
   if height ~= nil then
     self.height = height
+  end
+  if rotation ~= nil then
+    self.rotation = rotation
   end
   self.x1 = self.center_x - self.width / 2
   self.x2 = self.center_x + self.width / 2
@@ -206,7 +216,18 @@ function Renderer:renderRectpivotDo(func)
   for id, valuebox in pairs(self.interest_pivotdata) do
     local x = valuebox[1]
     local y = valuebox[2]
-    if self.x1 <= x and x <= self.x2 and self.y1 <= y and y <= self.y2 then
+    local renderer_Rect_pivot = {{self.x1,self.y2},
+                                {self.x2,self.y2},
+                                {self.x1,self.y1},
+                                {self.x2,self.y1}}
+    if self.rotation ~= 0.0 then
+      local centertable = {self.center_x,self.center_y}
+      renderer_Rect_pivot = {linear.rotate(centertable,renderer_Rect_pivot[1],-self.rotation),
+                             linear.rotate(centertable,renderer_Rect_pivot[2],-self.rotation),
+                             linear.rotate(centertable,renderer_Rect_pivot[3],-self.rotation),
+                             linear.rotate(centertable,renderer_Rect_pivot[4],-self.rotation)}
+    end
+    if linear.isPointInsideBox({x,y},renderer_Rect_pivot[1],renderer_Rect_pivot[2],renderer_Rect_pivot[4],renderer_Rect_pivot[3]) == true then
       func(id)
     end
   end
@@ -225,42 +246,54 @@ function Renderer:renderRectIdDo(func)
     table.insert(pivots, self.interest_pivotdata[id.."-2"])
     table.insert(pivots, self.interest_pivotdata[id.."-3"])
     table.insert(pivots, self.interest_pivotdata[id.."-4"])
-    -- if at least one pivot is inside the render_rect.
+
+    local renderer_Rect_pivot = {{self.x1,self.y2},
+                                {self.x2,self.y2},
+                                {self.x1,self.y1},
+                                {self.x2,self.y1}}
+    if self.rotation ~= 0.0 then
+      local centertable = {self.center_x,self.center_y}
+      renderer_Rect_pivot = {linear.rotate(centertable,renderer_Rect_pivot[1],-self.rotation),
+                             linear.rotate(centertable,renderer_Rect_pivot[2],-self.rotation),
+                             linear.rotate(centertable,renderer_Rect_pivot[3],-self.rotation),
+                             linear.rotate(centertable,renderer_Rect_pivot[4],-self.rotation)}
+    end
+
+
+    -- if at least one pivot is inside the render_rect or 
     for j=1,4 do
       local x = pivots[j][1]
       local y = pivots[j][2]
-      if (self.x1 <= x and x <= self.x2 and self.y1 <= y and y <= self.y2) then
+      if linear.isPointInsideBox({x,y},renderer_Rect_pivot[1],renderer_Rect_pivot[2],renderer_Rect_pivot[4],renderer_Rect_pivot[3]) == true then
         table.insert(idgetTable, id)
         goto continue
       end
     end
-    local pivindex = {{1,2},{2,4},{4,3},{3,1}}
-    local renderes = {{self.x1,self.y2},
-                      {self.x2,self.y2},
-                      {self.x1,self.y1},
-                      {self.x2,self.y1}}
+
     
     -- if sprite edge and render_rect edge are crossing each other.
+    local pivindex = {{1,2},{2,4},{4,3},{3,1}} 
     for p=1,4 do
       for r=1,4 do
         local pnum = pivindex[p]
         local rnum = pivindex[r]
         local l1 = pivots[pnum[1]]
         local l2 = pivots[pnum[2]]
-        local m1 = renderes[rnum[1]]
-        local m2 = renderes[rnum[2]]
+        local m1 = renderer_Rect_pivot[rnum[1]]
+        local m2 = renderer_Rect_pivot[rnum[2]]
         if linear.islineCrossing(l1,l2,m1,m2) == true then
           table.insert(idgetTable, id)
           goto continue
         end
       end
     end
-    -- if sprite_rect is so big that render_rect is inside of the sprite_rect.
+    -- ... sprite_rect is so big that render_rect is inside of the sprite_rect.
     if linear.isPointInsideBox({self.x1,self.y1},pivots[1],pivots[2],pivots[4],pivots[3]) == true then
       table.insert(idgetTable, id)
       goto continue
     end
-    --print(self.x1,self.y1,pivots[1][1],pivots[1][2],pivots[2][1],pivots[2][2],pivots[4][1],pivots[4][2],pivots[3][1],pivots[3][2])
+    
+    --print(renderer_Rect_pivot[1][1],renderer_Rect_pivot[1][2],renderer_Rect_pivot[2][1],renderer_Rect_pivot[2][2],renderer_Rect_pivot[3][1],renderer_Rect_pivot[3][2])
     ::continue::
   end
   for num, id in ipairs(idgetTable) do
@@ -271,18 +304,20 @@ end
 function Renderer:drawboundray()
   love.graphics.setCanvas(self.canvas)
   love.graphics.push()
-    love.graphics.rectangle("line",self.x1,self.y1,self.x2-self.x1,self.y2-self.y1)
+    love.graphics.rectangle("line",0,0,self.width,self.height)
   love.graphics.pop()
   love.graphics.setCanvas()
 end
 
 function Renderer:drawSpritesPivot()
   local function idDo(id)
-    local idbox = self.interest_pivotdata[id]
-    local x = idbox[1]
-    local y = idbox[2]
-    love.graphics.rectangle("fill", x - self.x1, self.y2 - y, 1, 1)
-    love.graphics.print(id,x - self.x1, self.y2 - y)
+    local piv = self.interest_pivotdata[id]
+    local corrected_piv = {piv[1] - self.x1, self.y2 - piv[2]}
+    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.rotation)
+    corrected_piv[1] = rotated_pos[1]
+    corrected_piv[2] = rotated_pos[2]
+    love.graphics.rectangle("fill", corrected_piv[1], corrected_piv[2], 1, 1)
+    love.graphics.print(id,corrected_piv[1], corrected_piv[2])
   end
 
   love.graphics.setCanvas(self.canvas)
@@ -296,7 +331,19 @@ function Renderer:drawALL()
   local function drawpos(id)
     local gbj = GameObject:find(GameObject:nameparse(id))
     local piv = Renderer.renderTarget_pivotmaker[id]
-    love.graphics.draw(gbj.graphics.drawable, piv[1] - self.x1, self.y2 - piv[2], -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5)
+    local corrected_piv = {piv[1] - self.x1, self.y2 - piv[2], -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5}
+    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.rotation)
+    corrected_piv[1] = rotated_pos[1]
+    corrected_piv[2] = rotated_pos[2]
+    corrected_piv[3] = corrected_piv[3] - self.rotation
+    love.graphics.draw(gbj.graphics.drawable, 
+                       corrected_piv[1], 
+                       corrected_piv[2], 
+                       corrected_piv[3], 
+                       corrected_piv[4], 
+                       corrected_piv[5], 
+                       corrected_piv[6], 
+                       corrected_piv[7])
   end
 
   love.graphics.setCanvas(self.canvas)
