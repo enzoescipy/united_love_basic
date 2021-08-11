@@ -422,7 +422,7 @@ function Graphics.setWindowSize(w,h)
   love.window.setMode(w, h)
   Graphics.windowW = w
   Graphics.windowH = h
-  Renderer.Master:equip(nil,w,h)
+  Renderer.Master:equip(nil,nil,w,h)
 end
 function Graphics.drawImmideatly(drawable,drawable_width, drawable_height, posx, posy) -- posx and y are 0,0 at center of window. drawable can be canvas of renderer.
   love.graphics.draw(drawable,posx-drawable_width/2+Graphics.windowW/2, posy-drawable_height/2+Graphics.windowH/2)

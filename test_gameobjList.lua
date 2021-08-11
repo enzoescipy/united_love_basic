@@ -30,9 +30,10 @@ require "united_love.united_love"
 
 -- end ::
 
-local Camera = GameObject("Camera","T","G")
+local Camera = GameObject("Camera","T")
+local Window_camera = GameObject("Window_camera","T","G")
 Renderer_cam1 = Renderer()
-Renderer_cam1:equip(Camera, 600,250)
+Renderer_cam1:equip(Camera,Window_camera, 600,250)
 
 local banana_tab = {}
 local tempname = "Banana" --tostring(i).."_"..tostring(j)

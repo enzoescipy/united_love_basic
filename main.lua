@@ -31,9 +31,9 @@ function love.update(dt)
   end
   ]]
   if love.keyboard.isDown("right") then
-    Renderer_cam1:refactor(nil,nil,nil,nil,Renderer_cam1.rotation - 0.01)
+    Cam1.transform:changevar("r", Cam1.transform.r - 0.01)
   elseif love.keyboard.isDown("left") then
-    Renderer_cam1:refactor(nil,nil,nil,nil,Renderer_cam1.rotation + 0.01)
+    Cam1.transform:changevar("r", Cam1.transform.r + 0.01)
   end
   
 

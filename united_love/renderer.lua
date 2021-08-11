@@ -22,7 +22,6 @@ function Renderer:new()
   self.interest_id = {}
   self.interest_pivotdata = {}
   self.canvas = love.graphics.newCanvas()
-  self.transform = nil
   self.x1 = 0
   self.x2 = 0
   self.y1 = 0
@@ -33,7 +32,9 @@ function Renderer:new()
 
   self.rotation = 0
 
-  self.owner = nil
+  self.locational_gbj = nil
+  self.transform = nil
+  self.canvas_gbj = nil
 
   table.insert(Renderer.renderers_list, self)
 end
@@ -81,53 +82,34 @@ end
 
 -- instance method
 --#region
-function Renderer:equip(gbj,width, height) -- gbj can be nil.
-  local center_x = 0
-  local center_y = 0
+function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_gbj can be nil.
+  self.locational_gbj = locational_gbj
+  self.canvas_gbj = canvas_gbj
+
   self.width = width
   self.height = height
+
   self.canvas = love.graphics.newCanvas(width,height)
-  if (gbj ~= nil) then
-    local transforms = gbj.transform
-    gbj.graphics:acceptNew(self.canvas)
-    center_x = transforms.x
-    center_y = transforms.y
-    Renderer.Master:recept_directly(gbj)
-    gbj.renderer = self
+
+  if (locational_gbj ~= nil and canvas_gbj ~= nil) then
+    self.transform = locational_gbj.transform
+    canvas_gbj.graphics:acceptNew(self.canvas)
+    Renderer.Master:recept_directly(canvas_gbj)
+  else
+    self.transform = {}
+    self.transform.x = 0
+    self.transform.y = 0
+    self.transform.r = 0
   end
-  self.x1 = center_x - self.width / 2
-  self.x2 = center_x + self.width / 2
-  self.y1 = center_y - self.height / 2
-  self.y2 = center_y + self.height / 2
-
-  self.center_x = center_x
-  self.center_y = center_y
-
-  self.owner = gbj
-
-  
 end
 
-function Renderer:refactor(width, height,center_x, center_y,rotation) -- version for equip but not gbj included. raise error if equip() not already called. put nil value for not changing
-  if center_x ~= nil then
-    self.center_x = center_x
-  end
-  if center_y ~= nil then
-    self.center_y = center_y
-  end
+function Renderer:refactor(width, height) -- version for equip but not gbj included. raise error if equip() not already called. put nil value for not changing
   if width ~= nil then
     self.width = width
   end
   if height ~= nil then
     self.height = height
   end
-  if rotation ~= nil then
-    self.rotation = rotation
-  end
-  self.x1 = self.center_x - self.width / 2
-  self.x2 = self.center_x + self.width / 2
-  self.y1 = self.center_y - self.height / 2
-  self.y2 = self.center_y + self.height / 2
 end
 
 function Renderer:recept_directly(gbj)
@@ -168,6 +150,28 @@ function Renderer:exclude(gbj)
   self.interest_id = tab
 end
 
+function Renderer:renderRectpivotCalculate()
+  local center_x = self.transform.x
+  local center_y = self.transform.y
+  local x1 = center_x - self.width / 2
+  local x2 = center_x + self.width / 2
+  local y1 = center_y - self.height / 2
+  local y2 = center_y + self.height / 2
+
+  local renderRect_pivots = {{x1,y2},
+                            {x2,y2},
+                            {x1,y1},
+                            {x2,y1}}
+  if self.transform.r ~= 0 then
+    renderRect_pivots = {linear.rotate({center_x,center_y},renderRect_pivots[1],-self.rotation),
+                        linear.rotate({center_x,center_y},renderRect_pivots[2],-self.rotation),
+                        linear.rotate({center_x,center_y},renderRect_pivots[3],-self.rotation),
+                        linear.rotate({center_x,center_y},renderRect_pivots[4],-self.rotation)}
+  end
+
+  return renderRect_pivots
+end
+
 function Renderer:refresh()
   self.canvas = love.graphics.newCanvas(self.width,self.height)
   self.interest_pivotdata = {}
@@ -205,29 +209,16 @@ function Renderer:refresh()
       pivotS[id.."-4"] = linear.rotate({pos_x,pos_y},pivotS[id.."-4"],rotate)
     end
   end
-  if self.owner ~= nil then
-    self.owner.graphics:acceptNew(self.canvas)
+  if self.canvas_gbj ~= nil then
+    self.canvas_gbj.graphics:acceptNew(self.canvas)
   end
   
 end
 
 function Renderer:renderRectpivotDo(func)
-
   for id, valuebox in pairs(self.interest_pivotdata) do
-    local x = valuebox[1]
-    local y = valuebox[2]
-    local renderer_Rect_pivot = {{self.x1,self.y2},
-                                {self.x2,self.y2},
-                                {self.x1,self.y1},
-                                {self.x2,self.y1}}
-    if self.rotation ~= 0.0 then
-      local centertable = {self.center_x,self.center_y}
-      renderer_Rect_pivot = {linear.rotate(centertable,renderer_Rect_pivot[1],-self.rotation),
-                             linear.rotate(centertable,renderer_Rect_pivot[2],-self.rotation),
-                             linear.rotate(centertable,renderer_Rect_pivot[3],-self.rotation),
-                             linear.rotate(centertable,renderer_Rect_pivot[4],-self.rotation)}
-    end
-    if linear.isPointInsideBox({x,y},renderer_Rect_pivot[1],renderer_Rect_pivot[2],renderer_Rect_pivot[4],renderer_Rect_pivot[3]) == true then
+    local renderer_Rect_pivot = self:renderRectpivotCalculate()
+    if linear.isPointInsideBox({self.transform.x,self.transform.y},renderer_Rect_pivot[1],renderer_Rect_pivot[2],renderer_Rect_pivot[4],renderer_Rect_pivot[3]) == true then
       func(id)
     end
   end
@@ -247,17 +238,7 @@ function Renderer:renderRectIdDo(func)
     table.insert(pivots, self.interest_pivotdata[id.."-3"])
     table.insert(pivots, self.interest_pivotdata[id.."-4"])
 
-    local renderer_Rect_pivot = {{self.x1,self.y2},
-                                {self.x2,self.y2},
-                                {self.x1,self.y1},
-                                {self.x2,self.y1}}
-    if self.rotation ~= 0.0 then
-      local centertable = {self.center_x,self.center_y}
-      renderer_Rect_pivot = {linear.rotate(centertable,renderer_Rect_pivot[1],-self.rotation),
-                             linear.rotate(centertable,renderer_Rect_pivot[2],-self.rotation),
-                             linear.rotate(centertable,renderer_Rect_pivot[3],-self.rotation),
-                             linear.rotate(centertable,renderer_Rect_pivot[4],-self.rotation)}
-    end
+    local renderer_Rect_pivot = self:renderRectpivotCalculate()
 
 
     -- if at least one pivot is inside the render_rect or 
@@ -312,8 +293,9 @@ end
 function Renderer:drawSpritesPivot()
   local function idDo(id)
     local piv = self.interest_pivotdata[id]
-    local corrected_piv = {piv[1] - self.x1, self.y2 - piv[2]}
-    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.rotation)
+    local renderer_piv = self:renderRectpivotCalculate()
+    local corrected_piv = {piv[1] - renderer_piv[1][1], renderer_piv[1][2] - piv[2]}
+    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
     corrected_piv[1] = rotated_pos[1]
     corrected_piv[2] = rotated_pos[2]
     love.graphics.rectangle("fill", corrected_piv[1], corrected_piv[2], 1, 1)
@@ -331,11 +313,12 @@ function Renderer:drawALL()
   local function drawpos(id)
     local gbj = GameObject:find(GameObject:nameparse(id))
     local piv = Renderer.renderTarget_pivotmaker[id]
-    local corrected_piv = {piv[1] - self.x1, self.y2 - piv[2], -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5}
-    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.rotation)
+    local renderer_piv = self:renderRectpivotCalculate()
+    local corrected_piv = {piv[1] - renderer_piv[1][1], renderer_piv[1][2] - piv[2], -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5}
+    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
     corrected_piv[1] = rotated_pos[1]
     corrected_piv[2] = rotated_pos[2]
-    corrected_piv[3] = corrected_piv[3] - self.rotation
+    corrected_piv[3] = corrected_piv[3] - self.transform.r
     love.graphics.draw(gbj.graphics.drawable, 
                        corrected_piv[1], 
                        corrected_piv[2], 
