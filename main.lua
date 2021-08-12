@@ -8,32 +8,30 @@ local linear = require "united_love.packages.linear"
 Main = require "test_gameobjList"
 
 -- :warning! Cashing 
---main threadthe component like "trans = gameobj.transform" or "j" to referencing
+--main tdthe component like "trans = gameobj.transform" or "j" to referencing
 -- component obj = gameobof some object easily and NOT DELETING cashed variables like "trans = nil" can
 -- cause MEMORY LEAK. DO delete cashed vars after using it.
 -- if you wanna destroy the cashed gameobject, please do it like "<Name> = nill"
 
 
-Banana = GameObject:find("Banana")
---Apple = GameObject:find("Apple")
-Cam1 = GameObject:find("Camera")
+BananaCam = GameObject:find("BananaCam")
+Camera = GameObject:find("Camera")
+
 
 function love.load()
   Graphics.setWindowSize(1024,640)
 end
 
 function love.update(dt)
-  --[[
-  if love.keyboard.isDown("right") then
-    Banana.transform:changevar("r",Banana.transform.r - 0.001)
+
+  if love.keyboard.isDown("up") then
+    BananaCam.transform:changevar("y", BananaCam.transform.y + 100*dt)
+  elseif love.keyboard.isDown("down") then
+    BananaCam.transform:changevar("y", BananaCam.transform.y - 100*dt)
+  elseif love.keyboard.isDown("right") then
+    BananaCam.transform:changevar("r", BananaCam.transform.r - dt)
   elseif love.keyboard.isDown("left") then
-    Banana.transform:changevar("r",Banana.transform.r + 0.001)
-  end
-  ]]
-  if love.keyboard.isDown("right") then
-    Cam1.transform:changevar("r", Cam1.transform.r - 0.01)
-  elseif love.keyboard.isDown("left") then
-    Cam1.transform:changevar("r", Cam1.transform.r + 0.01)
+    BananaCam.transform:changevar("r", BananaCam.transform.r + dt)
   end
   
 

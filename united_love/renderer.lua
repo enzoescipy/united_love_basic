@@ -22,16 +22,10 @@ function Renderer:new()
   self.interest_id = {}
   self.interest_pivotdata = {}
   self.canvas = love.graphics.newCanvas()
-  self.x1 = 0
-  self.x2 = 0
-  self.y1 = 0
-  self.y2 = 0
-
   self.width = 0
   self.height = 0
-
-  self.rotation = 0
-
+  self.canvas_width = 0
+  self.canvas_height = 0
   self.locational_gbj = nil
   self.transform = nil
   self.canvas_gbj = nil
@@ -63,11 +57,12 @@ end
 function Renderer.showFrame()
   for i=1,#Renderer.renderers_list do
     local Rs = Renderer.renderers_list[i]
+    
     Rs:refresh()
     Rs:drawALL()
 
     --debugmode
-    Rs:drawboundray()
+    Rs:drawboundray(3)
     Rs:drawSpritesPivot()
     --end
   end
@@ -82,16 +77,24 @@ end
 
 -- instance method
 --#region
-function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_gbj can be nil.
+function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_gbj can be nil. 
+  -- equiped locational_gbj's transform.x, y, r will be rendering range rectangle's center position's x, y and rotation, xs and ys will be scaling of renderRect. 
+  -- whatever you change xs or ys, xs and ys will be adjusted same, because of distortion of screen canvas.
   self.locational_gbj = locational_gbj
   self.canvas_gbj = canvas_gbj
 
   self.width = width
   self.height = height
 
+  self.canvas_width = width
+  self.canvas_height = height
+
+
   self.canvas = love.graphics.newCanvas(width,height)
 
   if (locational_gbj ~= nil and canvas_gbj ~= nil) then
+    Transform.relation(locational_gbj.transform, "xs",locational_gbj.transform,"ys",Transform.presetfunc.equal)
+    Transform.relation(locational_gbj.transform, "ys",locational_gbj.transform,"xs",Transform.presetfunc.equal)
     self.transform = locational_gbj.transform
     canvas_gbj.graphics:acceptNew(self.canvas)
     Renderer.Master:recept_directly(canvas_gbj)
@@ -100,6 +103,8 @@ function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_g
     self.transform.x = 0
     self.transform.y = 0
     self.transform.r = 0
+    self.transform.xs = 1
+    self.transform.ys = 1
   end
 end
 
@@ -150,30 +155,40 @@ function Renderer:exclude(gbj)
   self.interest_id = tab
 end
 
+function Renderer:scaledW()
+  return self.width * self.transform.xs
+end
+
+function Renderer:scaledH()
+  return self.height * self.transform.ys
+end
+
 function Renderer:renderRectpivotCalculate()
   local center_x = self.transform.x
   local center_y = self.transform.y
-  local x1 = center_x - self.width / 2
-  local x2 = center_x + self.width / 2
-  local y1 = center_y - self.height / 2
-  local y2 = center_y + self.height / 2
+  local x1 = center_x - self:scaledW() /2
+  local x2 = center_x + self:scaledW() /2
+  local y1 = center_y - self:scaledH() /2
+  local y2 = center_y + self:scaledH() /2
 
   local renderRect_pivots = {{x1,y2},
                             {x2,y2},
                             {x1,y1},
                             {x2,y1}}
+  
+  
   if self.transform.r ~= 0 then
-    renderRect_pivots = {linear.rotate({center_x,center_y},renderRect_pivots[1],-self.rotation),
-                        linear.rotate({center_x,center_y},renderRect_pivots[2],-self.rotation),
-                        linear.rotate({center_x,center_y},renderRect_pivots[3],-self.rotation),
-                        linear.rotate({center_x,center_y},renderRect_pivots[4],-self.rotation)}
+    renderRect_pivots = {linear.rotate({center_x,center_y},renderRect_pivots[1],-self.transform.r),
+                        linear.rotate({center_x,center_y},renderRect_pivots[2],-self.transform.r),
+                        linear.rotate({center_x,center_y},renderRect_pivots[3],-self.transform.r),
+                        linear.rotate({center_x,center_y},renderRect_pivots[4],-self.transform.r)}
   end
 
   return renderRect_pivots
 end
 
 function Renderer:refresh()
-  self.canvas = love.graphics.newCanvas(self.width,self.height)
+  self.canvas = love.graphics.newCanvas(self.canvas_width, self.canvas_height)
   self.interest_pivotdata = {}
 
   local idS = self.interest_id
@@ -203,10 +218,10 @@ function Renderer:refresh()
     pivotS[id.."-3"] = {pos_x- size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}--downleft
     pivotS[id.."-4"] = {pos_x + size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}--downright
     if rotate ~= 0 then
-      pivotS[id.."-1"] = linear.rotate({pos_x,pos_y},pivotS[id.."-1"],rotate)
-      pivotS[id.."-2"] = linear.rotate({pos_x,pos_y},pivotS[id.."-2"],rotate)
-      pivotS[id.."-3"] = linear.rotate({pos_x,pos_y},pivotS[id.."-3"],rotate)
-      pivotS[id.."-4"] = linear.rotate({pos_x,pos_y},pivotS[id.."-4"],rotate)
+      pivotS[id.."-1"] = linear.rotate({pos_x,pos_y},pivotS[id.."-1"],-rotate)
+      pivotS[id.."-2"] = linear.rotate({pos_x,pos_y},pivotS[id.."-2"],-rotate)
+      pivotS[id.."-3"] = linear.rotate({pos_x,pos_y},pivotS[id.."-3"],-rotate)
+      pivotS[id.."-4"] = linear.rotate({pos_x,pos_y},pivotS[id.."-4"],-rotate)
     end
   end
   if self.canvas_gbj ~= nil then
@@ -269,7 +284,7 @@ function Renderer:renderRectIdDo(func)
       end
     end
     -- ... sprite_rect is so big that render_rect is inside of the sprite_rect.
-    if linear.isPointInsideBox({self.x1,self.y1},pivots[1],pivots[2],pivots[4],pivots[3]) == true then
+    if linear.isPointInsideBox(self:renderRectpivotCalculate()[1],pivots[1],pivots[2],pivots[4],pivots[3]) == true then
       table.insert(idgetTable, id)
       goto continue
     end
@@ -282,10 +297,14 @@ function Renderer:renderRectIdDo(func)
   end
 end
 
-function Renderer:drawboundray()
+function Renderer:drawboundray(thickness)
   love.graphics.setCanvas(self.canvas)
   love.graphics.push()
-    love.graphics.rectangle("line",0,0,self.width,self.height)
+    love.graphics.scale(self.canvas_width / self:scaledW(), self.canvas_height / self:scaledH())
+    love.graphics.rectangle("fill", 0,0,self:scaledW(),thickness)
+    love.graphics.rectangle("fill", 0,0,thickness,self:scaledH())
+    love.graphics.rectangle("fill", 0,self:scaledH() - thickness,self:scaledW(),self:scaledH())
+    love.graphics.rectangle("fill", self:scaledW() - thickness,0,self:scaledW(),self:scaledH())
   love.graphics.pop()
   love.graphics.setCanvas()
 end
@@ -294,16 +313,24 @@ function Renderer:drawSpritesPivot()
   local function idDo(id)
     local piv = self.interest_pivotdata[id]
     local renderer_piv = self:renderRectpivotCalculate()
-    local corrected_piv = {piv[1] - renderer_piv[1][1], renderer_piv[1][2] - piv[2]}
-    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
+    local renderRects = {renderer_piv[3],renderer_piv[2]}
+    local x1 = renderRects[1][1]
+    local x2 = renderRects[2][1]
+    local y1 = renderRects[1][2]
+    local y2 = renderRects[2][2]
+    local xp = piv[1]
+    local yp = piv[2]
+    local corrected_piv = {(xp - x1), (yp - y2)}
+    local rotated_pos = linear.rotate({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
     corrected_piv[1] = rotated_pos[1]
     corrected_piv[2] = rotated_pos[2]
-    love.graphics.rectangle("fill", corrected_piv[1], corrected_piv[2], 1, 1)
-    love.graphics.print(id,corrected_piv[1], corrected_piv[2])
+    love.graphics.rectangle("fill", corrected_piv[1], -corrected_piv[2], 1, 1)
+    love.graphics.print(id,corrected_piv[1], -corrected_piv[2])
   end
 
   love.graphics.setCanvas(self.canvas)
   love.graphics.push()
+    love.graphics.scale(self.canvas_width / self:scaledW(), self.canvas_height / self:scaledH())
     self:renderRectpivotDo(idDo)
   love.graphics.pop()
   love.graphics.setCanvas()
@@ -314,23 +341,33 @@ function Renderer:drawALL()
     local gbj = GameObject:find(GameObject:nameparse(id))
     local piv = Renderer.renderTarget_pivotmaker[id]
     local renderer_piv = self:renderRectpivotCalculate()
-    local corrected_piv = {piv[1] - renderer_piv[1][1], renderer_piv[1][2] - piv[2], -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5}
-    local rotated_pos = linear.rotate({self.width/2,self.height/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
+    local renderRects = {renderer_piv[3],renderer_piv[2]}
+    local x1 = renderRects[1][1]
+    local x2 = renderRects[2][1]
+    local y1 = renderRects[1][2]
+    local y2 = renderRects[2][2]
+    local xp = piv[1]
+    local yp = piv[2]
+    local corrected_piv = {(xp - x1), (yp - y2), -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5}
+    local rotated_pos = linear.rotate({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
     corrected_piv[1] = rotated_pos[1]
     corrected_piv[2] = rotated_pos[2]
     corrected_piv[3] = corrected_piv[3] - self.transform.r
     love.graphics.draw(gbj.graphics.drawable, 
                        corrected_piv[1], 
-                       corrected_piv[2], 
-                       corrected_piv[3], 
+                       -corrected_piv[2], 
+                       -corrected_piv[3], 
                        corrected_piv[4], 
                        corrected_piv[5], 
                        corrected_piv[6], 
                        corrected_piv[7])
+    --print(corrected_piv[1], corrected_piv[2])
+    
   end
 
   love.graphics.setCanvas(self.canvas)
   love.graphics.push()
+    love.graphics.scale(self.canvas_width / self:scaledW(), self.canvas_height / self:scaledH())
     self:renderRectIdDo(drawpos)
   love.graphics.pop()
   love.graphics.setCanvas()

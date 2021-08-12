@@ -33,10 +33,19 @@ require "united_love.united_love"
 local Camera = GameObject("Camera","T")
 local Window_camera = GameObject("Window_camera","T","G")
 Renderer_cam1 = Renderer()
-Renderer_cam1:equip(Camera,Window_camera, 600,250)
+Renderer_cam1:equip(Camera,Window_camera, 800,600)
+--Camera.transform:changevar("ys", 1)
 
-local banana_tab = {}
-local tempname = "Banana" --tostring(i).."_"..tostring(j)
+local tempname = "Road"
+local Road_pic = GameObject(tempname.."_pic","T","G")
+Road_pic.graphics:newjpgImage("exp_sprites/road.png")
+local Road_text = GameObject(tempname.."_text","T","G")
+local Road = GameObject(tempname, "T", "F")
+Road.folder:include(Road_pic)
+Transform.unitylikeMastertoSlave(Road, Road.folder.gbjstore)
+Renderer_cam1:recept_automatically(Road)
+
+local tempname = "Banana"
 local Banana_pic = GameObject(tempname.."_pic","T","G")
 Banana_pic.graphics:newjpgImage("exp_sprites/banana.jpg")
 local Banana_text = GameObject(tempname.."_text","T","G")
@@ -46,15 +55,9 @@ local Banana = GameObject(tempname, "T", "F")
 Banana.folder:include(Banana_pic)
 Banana.folder:include(Banana_text)
 Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
-Banana.transform:changevar("x",200)
-
-
 Renderer_cam1:recept_automatically(Banana)
-table.insert(banana_tab, Banana)
 
-
-
-
-return MAIN
-
---
+local BananaCam = GameObject("BananaCam", "T", "F")
+BananaCam.folder:include(Banana)
+BananaCam.folder:include(Camera)
+Transform.unitylikeMastertoSlave(BananaCam, BananaCam.folder.gbjstore)

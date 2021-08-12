@@ -312,7 +312,7 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
       
       local master_pos = {ownerTransform.x, ownerTransform.y}
       local slave_pos = {targetTransform.x, targetTransform.y}
-      local after_pos = linear.rotate(master_pos, slave_pos, owner_newvalue - owner_oldvalue)
+      local after_pos = linear.rotate(master_pos, slave_pos, -(owner_newvalue - owner_oldvalue))
       
       targetTransform:changevar("x", after_pos[1])
       targetTransform:changevar("y", after_pos[2])
