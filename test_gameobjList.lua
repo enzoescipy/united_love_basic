@@ -56,8 +56,3 @@ Banana.folder:include(Banana_pic)
 Banana.folder:include(Banana_text)
 Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
 Renderer_cam1:recept_automatically(Banana)
-
-local BananaCam = GameObject("BananaCam", "T", "F")
-BananaCam.folder:include(Banana)
-BananaCam.folder:include(Camera)
-Transform.unitylikeMastertoSlave(BananaCam, BananaCam.folder.gbjstore)

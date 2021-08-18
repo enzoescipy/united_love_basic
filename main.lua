@@ -14,9 +14,10 @@ Main = require "test_gameobjList"
 -- if you wanna destroy the cashed gameobject, please do it like "<Name> = nill"
 
 
-BananaCam = GameObject:find("BananaCam")
+Banana = GameObject:find("Banana")
 Camera = GameObject:find("Camera")
 
+--[[
 
 function love.load()
   Graphics.setWindowSize(1024,640)
@@ -25,13 +26,13 @@ end
 function love.update(dt)
 
   if love.keyboard.isDown("up") then
-    BananaCam.transform:changevar("y", BananaCam.transform.y + 100*dt)
+    Banana.transform:changevar("y", Banana.transform.y + 100*dt)
   elseif love.keyboard.isDown("down") then
-    BananaCam.transform:changevar("y", BananaCam.transform.y - 100*dt)
+    Banana.transform:changevar("y", Banana.transform.y - 100*dt)
   elseif love.keyboard.isDown("right") then
-    BananaCam.transform:changevar("r", BananaCam.transform.r - dt)
+    Banana.transform:changevar("r", Banana.transform.r - dt)
   elseif love.keyboard.isDown("left") then
-    BananaCam.transform:changevar("r", BananaCam.transform.r + dt)
+    Banana.transform:changevar("r", Banana.transform.r + dt)
   end
   
 
@@ -40,6 +41,10 @@ end
 function love.draw()
   Renderer.showFrame()
 end
+]]
 
 print("--test")
 print("--test")
+
+a = GameObject("a","T")
+a.transform:changevar("r",1)

@@ -25,9 +25,12 @@ function Transform:new(ownergbj)
   -- x y r xs ys are graphical variables connected to Graphical. component. DO NOT DELET THAT.
   self.x = 0.0 -- x pos
   self.y = 0.0 -- y pos
-  self.r = 0.0 -- rotation radian
+  self.r = 0.0 -- rotation radian. *IMPORNANT* : rotation will be based on clock orientation == plus rotation. (left-handed)
   self.xs = 1.0 -- x scale
   self.ys = 1.0 -- y scale
+
+  self.tMatrix = {{1,0},{0,1}} -- transformation_Matrix, which represent rotation and scaling. each are x, y basevector.
+
   self.graphical = nil
 
   self.reactlist = {}
@@ -35,12 +38,77 @@ function Transform:new(ownergbj)
   self.aimednameInv = {}
   self.aimednamecalled = {}
 
-  self.varnames = {"x", "y","r","xs","ys"}
+  self.varnames = {"x", "y","r","xs","ys", "tMatrix"}
   self.varnamesInv = {}
   for i,v in ipairs(self.varnames) do
     self.varnamesInv[v] = i
   end
-  self.varnamesRecursion = {0,0,0,0,0}
+  self.varnamesRecursion = {0,0,0,0,0,0}
+
+  local function xScale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    local TMatrix = ownerTransform[ownerName]
+    local target_newvalue --now making!!!!
+
+    target_newvalue = linear.abs(TMatrix[1])
+  
+    targetTransform:changevar(targetName, target_newvalue)
+  end
+
+  local function yScale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    local TMatrix = ownerTransform[ownerName]
+    local target_newvalue --now making!!!!
+
+    target_newvalue = linear.abs(TMatrix[2])
+  
+    targetTransform:changevar(targetName, target_newvalue)
+  end
+
+  local function rOtation(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    local TMatrix = ownerTransform[ownerName]
+    local target_newvalue --now making!!!!
+
+    target_newvalue = - linear.toangle(TMatrix[1])
+  
+    targetTransform:changevar(targetName, target_newvalue)
+  end
+  
+  local function xsTMatrix(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    local xs = ownerTransform[ownerName]
+    local target_newvalue --now making!!!!
+    local TMatrix_old = targetTransform[targetName]
+
+    target_newvalue = {linear.vectorScaling(TMatrix_old[1],xs),TMatrix_old[2]}
+  
+    targetTransform:changevar(targetName, target_newvalue)
+  end
+
+  local function ysTMatrix(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    local ys = ownerTransform[ownerName]
+    local target_newvalue --now making!!!!
+    local TMatrix_old = targetTransform[targetName]
+
+    target_newvalue = {TMatrix_old[1],linear.vectorScaling(TMatrix_old[2],ys)}
+  
+    targetTransform:changevar(targetName, target_newvalue)
+  end
+
+  local function rTMatrix(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    local r = ownerTransform[ownerName]
+    local target_newvalue --now making!!!!
+    local TMatrix_old = targetTransform[targetName]
+
+    target_newvalue = {linear.rotate({0,0},TMatrix_old[1],-r),
+                      linear.rotate({0,0},TMatrix_old[2],-r)}
+  
+    targetTransform:changevar(targetName, target_newvalue)
+  end
+  Transform.relation(self,"tMatrix",self,"xs",xScale)
+  Transform.relation(self,"tMatrix",self,"ys",yScale)
+  Transform.relation(self,"xs",self,"tMatrix",xsTMatrix)
+  Transform.relation(self,"ys",self,"tMatrix",ysTMatrix)
+  Transform.relation(self,"tMatrix",self,"r",rOtation)
+  Transform.relation(self,"r",self,"tMatrix",rTMatrix)
+
 end
 
 function Transform:inactivate()
@@ -161,6 +229,7 @@ function Transform:changevar(varname, value)
 
   local index = self.varnamesInv[varname]
   self.varnamesRecursion[index] = self.varnamesRecursion[index] + 1
+  print(self.varnamesRecursion[index],index)
 
   if self.varnamesRecursion[index] >= 2 then
     for i=1,#self.varnamesRecursion do

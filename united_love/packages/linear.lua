@@ -1,3 +1,5 @@
+local Object = require "united_love.packages.classic"
+
 local linear = {}
 
 local FLANK = 0.00000000001
@@ -6,6 +8,24 @@ local NAN = 0/0
 linear.FLANK = FLANK
 linear.INF = INF
 linear.NAN = NAN
+function linear.abs(v)
+    local x = v[1]
+    local y = v[2]
+    return math.sqrt(x*x + y*y)
+end
+
+function linear.plusminusFlip(v)
+    return {-v[1],-v[2]}
+end
+
+function linear.vectorAdd(v1,v2)
+    return {v1[1]+v2[1],v1[2]+v2[2]}
+end
+
+function linear.vectorScaling(v1, s)
+    return {v1[1]*s,v1[2]*s}
+end
+
 function linear.pointToPointDist(p1,p2)
     return math.sqrt((p1[1]-p2[1]) * (p1[1]-p2[1]) + (p1[2]-p2[2]) * (p1[2]-p2[2]))
 end
@@ -227,4 +247,38 @@ function linear.toangle(x, y)
         return 0.0
     end
 end
+
+linear.Tmatrix = Object:extend()
+
+function linear.Tmatrix:new()
+    self.xVector = {1,0}
+    self.yVector = {0,1}
+end
+
+function linear.Tmatrx:giveRotation(r)
+    self.xVector = linear.rotate({0,0},self.xVector,-r)
+    self.yVector = linear.rotate({0,0},self.yVector,-r)
+end
+
+function linear.Tmatrix:giveXscale(xs)
+    self.xVector = linear.vectorScaling(self.xVector,xs)
+end
+
+function linear.Tmatrix:giveYscale(ys)
+    self.yVector = linear.vectorScaling(self.yVector,ys)
+end
+
+function linear.Tmatrix:takeRotation(r)
+    return - linear.toangle(self.xVector)
+end
+
+function linear.Tmatrix:takeXscale(xs)
+    return linear.abs(self.xVector)
+end
+
+function linear.Tmatrix:takeYscale(ys)
+    return linear.abs(self.yVector)
+end
+
+
 return linear
