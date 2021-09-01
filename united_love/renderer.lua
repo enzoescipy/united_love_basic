@@ -355,7 +355,6 @@ function Renderer:drawALL()
     corrected_piv[1] = rotated_pos[1]
     corrected_piv[2] = rotated_pos[2]
     corrected_piv[3] = corrected_piv[3] - self.transform.tMatrix:takeRotation()
-    
     love.graphics.draw(gbj.graphics.drawable, 
                        corrected_piv[1], 
                        corrected_piv[2], 

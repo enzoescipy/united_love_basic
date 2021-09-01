@@ -206,6 +206,7 @@ function Transform:changevar(varname, value)
     if varname == "x" then
       Renderer.compensate(value,nil,nil,nil,nil, self.graphical.id)
     elseif varname == "y" then
+      print(value)
       Renderer.compensate(nil,value,nil,nil,nil, self.graphical.id)
     elseif varname == "tMatrix" then
       Renderer.compensate(nil,nil,value,nil,nil, self.graphical.id)
@@ -324,9 +325,6 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
     slav.transform:newvar("x_r") -- relative_x.
     slav.transform:newvar("y_r") -- relative_y.
     -- tMatrix * {x_r-master.x,y_r-master.y} + {master.x,master.y} = {x,y} , ALWAYS WORKING.
-    slav.transform:changevar("x_r",slav.transform.x - master.transform.x)
-    slav.transform:changevar("y_r",slav.transform.y - master.transform.y)
-    
 
     local function calculate_INVERSEreltoreal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
       local master_transform_tMatrix = master.transform.tMatrix
@@ -338,7 +336,6 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
       slav.transform:changevar("x_r",rel_pos_new[1])
       slav.transform:changevar("y_r",rel_pos_new[2])
     end
-
     local function calculate_reltoreal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
       local master_transform_tMatrix = master.transform.tMatrix
       local master_realpos = {master.transform.x,master.transform.y}
@@ -348,16 +345,28 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
       slav.transform:changevar("y",real_pos_new[2])
     end
 
+
+
     for i,v1 in ipairs({"x","y"}) do
-      Transform.relation(slav.transform,v1,slav.transform,"any", calculate_INVERSEreltoreal)
+      for j,v2 in ipairs({"x_r","y_r"}) do
+        Transform.relation(slav.transform,v1,slav.transform,v2, calculate_INVERSEreltoreal)
+        
+      end
+      
     end
     
     for i,v1 in ipairs({"x","y"}) do
-      Transform.relation(master.transform, v1,slav.transform, "any", calculate_reltoreal)
+      for j,v2 in ipairs({"x_r","y_r"}) do
+        Transform.relation(master.transform, v1,slav.transform, v2, calculate_reltoreal)
+      end
+      
     end
 
-    for i,v1 in ipairs({"x","y"}) do
-      Transform.relation(slav.transform,"any",slav.transform, v1, calculate_reltoreal)
+    for i,v1 in ipairs({"x_r","y_r"}) do
+      for j,v2 in ipairs({"x_","y_"}) do
+        Transform.relation(slav.transform,v1,slav.transform, v2, calculate_reltoreal)
+      end
+      
     end
 
 
@@ -377,7 +386,7 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
     Transform.relation(master.transform, "tMatrix", slav.transform, "x", calculate_reltoreal)
     Transform.relation(master.transform, "tMatrix", slav.transform, "y", calculate_reltoreal)
 
-
+    slav.transform:changevar("x",slav.transform.x)
   end
 end
 -- #endregion

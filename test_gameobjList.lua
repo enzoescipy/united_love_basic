@@ -31,12 +31,11 @@ require "united_love.united_love"
 -- end ::
 
 
-local Camera = GameObject("Camera","T")
+local Camera = GameObject("Camera","T","F")
 local Window_camera = GameObject("Window_camera","T","G")
 Renderer_cam1 = Renderer()
 Renderer_cam1:equip(Camera,Window_camera, 800,600)
 --Camera.transform:changevar("ys", 1)
-
 --[[
 local tempname = "Road"
 local Road_pic = GameObject(tempname.."_pic","T","G")
@@ -46,6 +45,7 @@ local Road = GameObject(tempname, "T", "F")
 Road.folder:include(Road_pic)
 Transform.unitylikeMastertoSlave(Road, Road.folder.gbjstore)
 Renderer_cam1:recept_automatically(Road)
+Camera.folder:include(Road)
 ]]
 
 local tempname = "Banana"
@@ -57,7 +57,8 @@ local Banana = GameObject(tempname, "T", "F")
 Banana.folder:include(Banana_pic)
 Banana.folder:include(Banana_text)
 Transform.unitylikeMastertoSlave(Banana, Banana.folder.gbjstore)
-
+Banana_text.transform:changevar("y_r",-100)
 Renderer_cam1:recept_automatically(Banana)
-Banana_text.transform:changevar("y",-100)
---Banana_pic.transform:changevar("y",100)
+Camera.folder:include(Banana)
+
+--Transform.unitylikeMastertoSlave(Camera, Camera.folder.gbjstore)

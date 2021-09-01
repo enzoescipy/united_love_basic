@@ -22,7 +22,8 @@ function love.load()
 end
 
 function love.update(dt)
-  Banana.transform:changevar("tMatrix",Banana.transform.tMatrix:getRotated(0.01))
+  --Banana.transform:changevar("tMatrix",Banana.transform.tMatrix:getRotated(dt))
+  --Banana.transform:changevar("y", Banana.transform.y + dt*100)
 end
 
 function love.draw()
