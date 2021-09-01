@@ -174,50 +174,8 @@ function linear.isPointInsideBox(point, p1,p2,p3,p4,...) -- box must be perfect 
 
 end
 
-function linear.rotate(axis, target, angle) -- angle unit is radian.
-    -- return rotated target point. orientation is axis value.
-    if type(axis) ~= "table" or type(target) ~= "table" or type(angle) ~= "number" then
-        return "type err."
-    end
-    local x = target[1] - axis[1]
-    local y = target[2] - axis[2]
 
-    local radious = math.sqrt(x*x + y*y)
-    
-    local current_angle = linear.toangle(x,y)
-    local polar_P
-    if current_angle == "origin" or radious == 0 then
-        polar_P = {0,0}
-    else
-        polar_P = {radious, linear.toangle(x,y)}
-    end
-
-    polar_P[2] = polar_P[2] + angle
-    local new_x = math.cos(polar_P[2]) * polar_P[1] + axis[1]
-    local new_y = math.sin(polar_P[2]) * polar_P[1] + axis[2]
-    return {new_x,new_y}
-end
-
-function linear.scale(origin, target, xscaleamount, yscaleamount)
-    if type(origin) ~= "table" or type(target) ~= "table" or type(yscaleamount) ~= "number" or type(xscaleamount) ~= "number" then
-        return "type err."
-    end
-
-    local abs_pos = {target[1] - origin[1], target[2] - origin[2]}
-    return {abs_pos[1] * xscaleamount + origin[1], abs_pos[2] * yscaleamount + origin[2]}
-end
-
-function linear.angular_scale(origin, target, xscaleamount, yscaleamount, angle)
-    if type(origin) ~= "table" or type(target) ~= "table" or type(yscaleamount) ~= "number" or type(xscaleamount) ~= "number" then
-        return "type err."
-    end
-
-    local original_targetpos = linear.rotate(origin, target, -angle)
-    local scaled_targetpos = linear.scale(origin, original_targetpos, xscaleamount, yscaleamount)
-    return linear.rotate(origin, scaled_targetpos, angle)
-end
-
-function linear.toangle(x, y)
+function linear.toangle(x, y) -- toangle return right-handed angle.
     local tanAngle = 0.0
     if x == 0.0 then
         if y > 0 then
@@ -239,7 +197,7 @@ function linear.toangle(x, y)
         end
     elseif tanAngle < 0 then
         if y < 0 then
-            return tanAngle + 2 * math.pi
+            return tanAngle
         else
             return tanAngle + math.pi
         end
@@ -255,21 +213,52 @@ function linear.Tmatrix:new()
     self.yVector = {0,1}
 end
 
-function linear.Tmatrx:giveRotation(r)
-    self.xVector = linear.rotate({0,0},self.xVector,-r)
-    self.yVector = linear.rotate({0,0},self.yVector,-r)
+function linear.Tmatrix:copy()
+    local result = linear.Tmatrix()
+    result.xVector[1] = self.xVector[1]
+    result.xVector[2] = self.xVector[2]
+    result.yVector[1] = self.yVector[1]
+    result.yVector[2] = self.yVector[2]
+    return result
 end
 
-function linear.Tmatrix:giveXscale(xs)
-    self.xVector = linear.vectorScaling(self.xVector,xs)
+function linear.Tmatrix:debug()
+    local t = {self.xVector[1],self.yVector[1],
+                self.xVector[2],self.yVector[2]}
+    print("{"..tostring(t[1])..", "..tostring(t[2]).."}")
+    print("{"..tostring(t[3])..", "..tostring(t[4]).."}")
 end
 
-function linear.Tmatrix:giveYscale(ys)
-    self.yVector = linear.vectorScaling(self.yVector,ys)
+function linear.Tmatrix:getRotated(r)
+    local result = linear.Tmatrix()
+    local function rotation(v, r)
+        local cos, sin = math.cos(r),math.sin(r)
+        local rotMatrix = linear.Tmatrix()
+        rotMatrix.xVector = {cos,sin}
+        rotMatrix.yVector = {-sin,cos}
+        return linear.matVecMul(v,rotMatrix)
+    end
+    local temp_x = rotation(self.xVector,r)
+    local temp_y = rotation(self.yVector,r)
+    result.xVector = temp_x
+    result.yVector = temp_y
+    return result
+end
+
+function linear.Tmatrix:getXscaled(xs)
+    local result = linear.Tmatrix()
+    result.xVector = linear.vectorScaling(self.xVector,xs)
+    return result
+end
+
+function linear.Tmatrix:getYscaled(ys)
+    local result = linear.Tmatrix()
+    result.yVector = linear.vectorScaling(self.yVector,ys)
+    return result
 end
 
 function linear.Tmatrix:takeRotation(r)
-    return - linear.toangle(self.xVector)
+    return linear.toangle(self.xVector[1],self.xVector[2])
 end
 
 function linear.Tmatrix:takeXscale(xs)
@@ -280,5 +269,56 @@ function linear.Tmatrix:takeYscale(ys)
     return linear.abs(self.yVector)
 end
 
+function linear.Tmatrix:takeInverse(...) -- ... means error tolerlrate, for not defined inverse matrix select range.
+    local error_tolerate = {...}
+    error_tolerate = error_tolerate[1]
+    if error_tolerate == nil then
+        error_tolerate = FLANK
+    end
+    local t = {self.xVector[1],self.yVector[1],
+                self.xVector[2],self.yVector[2]}
+    local determinant = t[1]*t[4] - t[2]*t[3]
+    if math.abs(determinant) <= error_tolerate then
+        return "NOT_DEFINED"
+    end
+    determinant = 1 / determinant
+    local resultT = {determinant*t[4],-determinant*t[2],
+                     -determinant*t[3],determinant*t[1]}
+    local result = linear.Tmatrix()
+    result.xVector = {resultT[1],resultT[3]}
+    result.yVector = {resultT[2],resultT[4]}
+    return result
+end
+
+function linear.matrixMul(tma1, tma2)
+    local result = linear.Tmatrix()
+    local t1 = {tma1.xVector[1],tma1.yVector[1],
+                tma1.xVector[2],tma1.yVector[2]}
+    local t2 = {tma2.xVector[1],tma2.yVector[1],
+                tma2.xVector[2],tma2.yVector[2]}
+
+    local resultMatrix = {t1[1]*t2[1]+t1[2]*t2[3]  ,  t1[1]*t2[2]+t1[2]*t2[4],
+                          t1[3]*t2[1]+t1[4]*t2[3]  ,  t1[3]*t2[2]+t1[4]*t2[4]}
+
+    result.xVector = {resultMatrix[1],resultMatrix[2]}
+    result.yVector = {resultMatrix[3],resultMatrix[4]}
+    return result
+end
+
+function linear.matVecMul(vec, mat)
+    local result = {0,0}
+    local v = vec
+    local m = {mat.xVector[1],mat.yVector[1],
+                mat.xVector[2],mat.yVector[2]}
+    result[1] = m[1]*v[1] + m[2]*v[2]
+    result[2] = m[3]*v[1] + m[4]*v[2]
+
+    return result
+end
+
+function linear.centerVectorandMatrixMul(centerVec, targetVec, Matrix)
+    local realTarget =  linear.vectorAdd(linear.plusminusFlip(centerVec), targetVec)
+    return linear.vectorAdd(linear.matVecMul(realTarget, Matrix),centerVec)
+end
 
 return linear

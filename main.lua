@@ -11,40 +11,31 @@ Main = require "test_gameobjList"
 --main tdthe component like "trans = gameobj.transform" or "j" to referencing
 -- component obj = gameobof some object easily and NOT DELETING cashed variables like "trans = nil" can
 -- cause MEMORY LEAK. DO delete cashed vars after using it.
--- if you wanna destroy the cashed gameobject, please do it like "<Name> = nill"
+-- if you wanna destroy the cashed gameobject, please do it like "<Name> = nil"
 
 
 Banana = GameObject:find("Banana")
 Camera = GameObject:find("Camera")
-
---[[
 
 function love.load()
   Graphics.setWindowSize(1024,640)
 end
 
 function love.update(dt)
-
-  if love.keyboard.isDown("up") then
-    Banana.transform:changevar("y", Banana.transform.y + 100*dt)
-  elseif love.keyboard.isDown("down") then
-    Banana.transform:changevar("y", Banana.transform.y - 100*dt)
-  elseif love.keyboard.isDown("right") then
-    Banana.transform:changevar("r", Banana.transform.r - dt)
-  elseif love.keyboard.isDown("left") then
-    Banana.transform:changevar("r", Banana.transform.r + dt)
-  end
-  
-
+  Banana.transform:changevar("tMatrix",Banana.transform.tMatrix:getRotated(0.01))
 end
 
 function love.draw()
   Renderer.showFrame()
 end
+
+--[[
+print("*")
+local testgbj = GameObject("testgbj","T")
+for i = 1,10 do
+  print(testgbj.transform.tMatrix:takeRotation())
+  print(testgbj.transform.tMatrix.xVector[1],testgbj.transform.tMatrix.xVector[2])
+  testgbj.transform.tMatrix = testgbj.transform.tMatrix:getRotated(0.01)
+end
+print("*")
 ]]
-
-print("--test")
-print("--test")
-
-a = GameObject("a","T")
-a.transform:changevar("r",1)

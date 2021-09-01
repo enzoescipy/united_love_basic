@@ -1,4 +1,5 @@
 local linear = require "united_love.packages.linear"
+local Tmatrix = linear.Tmatrix
 local clone = require "united_love.packages.clone"
 --
 -- renderer
@@ -43,8 +44,13 @@ function Renderer.createpivot(graphical_id)
   databox[graphical_id] = {nil, nil, nil,nil,nil, nil, nil} -- posx, posy, rotate, sizex, sizey, pivotamount
 end
 
-function Renderer.compensate(pos_x, pos_y,rotate, scale_x, scale_y, size_x, size_y,graphical_id)
-  local valuetable = {pos_x, pos_y, rotate, scale_x, scale_y, size_x, size_y}
+function Renderer.compensate(pos_x, pos_y,tMatrix, size_x, size_y,graphical_id)
+  local valuetable
+  if tMatrix == nil then
+    valuetable = {pos_x, pos_y, tMatrix, size_x, size_y}
+  else
+    valuetable = {pos_x, pos_y, tMatrix:copy(), size_x, size_y}
+  end
   local databox = Renderer.renderTarget_pivotmaker
   local maker = databox[graphical_id]
   for i = 1,7 do
@@ -93,8 +99,7 @@ function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_g
   self.canvas = love.graphics.newCanvas(width,height)
 
   if (locational_gbj ~= nil and canvas_gbj ~= nil) then
-    Transform.relation(locational_gbj.transform, "xs",locational_gbj.transform,"ys",Transform.presetfunc.equal)
-    Transform.relation(locational_gbj.transform, "ys",locational_gbj.transform,"xs",Transform.presetfunc.equal)
+    ---code for equalize xs and ys.
     self.transform = locational_gbj.transform
     canvas_gbj.graphics:acceptNew(self.canvas)
     Renderer.Master:recept_directly(canvas_gbj)
@@ -102,9 +107,7 @@ function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_g
     self.transform = {}
     self.transform.x = 0
     self.transform.y = 0
-    self.transform.r = 0
-    self.transform.xs = 1
-    self.transform.ys = 1
+    self.transform.tMatrix = Tmatrix()
   end
 end
 
@@ -156,11 +159,11 @@ function Renderer:exclude(gbj)
 end
 
 function Renderer:scaledW()
-  return self.width * self.transform.xs
+  return self.width * self.transform.tMatrix:takeXscale()
 end
 
 function Renderer:scaledH()
-  return self.height * self.transform.ys
+  return self.height * self.transform.tMatrix:takeYscale()
 end
 
 function Renderer:renderRectpivotCalculate()
@@ -176,12 +179,12 @@ function Renderer:renderRectpivotCalculate()
                             {x1,y1},
                             {x2,y1}}
   
-  
-  if self.transform.r ~= 0 then
-    renderRect_pivots = {linear.rotate({center_x,center_y},renderRect_pivots[1],-self.transform.r),
-                        linear.rotate({center_x,center_y},renderRect_pivots[2],-self.transform.r),
-                        linear.rotate({center_x,center_y},renderRect_pivots[3],-self.transform.r),
-                        linear.rotate({center_x,center_y},renderRect_pivots[4],-self.transform.r)}
+  local rotation = self.transform.tMatrix:takeRotation()
+  if rotation ~= 0 then
+    renderRect_pivots = {linear.centerVectorandMatrixMul({center_x,center_y},renderRect_pivots[1],self.transform.tMatrix),
+                        linear.centerVectorandMatrixMul({center_x,center_y},renderRect_pivots[2],self.transform.tMatrix),
+                        linear.centerVectorandMatrixMul({center_x,center_y},renderRect_pivots[3],self.transform.tMatrix),
+                        linear.centerVectorandMatrixMul({center_x,center_y},renderRect_pivots[4],self.transform.tMatrix)}
   end
 
   return renderRect_pivots
@@ -205,24 +208,21 @@ function Renderer:refresh()
   
     local pos_x = maker[1]
     local pos_y = maker[2]
-    local rotate = maker[3]
-    local scale_x = maker[4]
-    local scale_y = maker[5]
-    local size_x = maker[6]
-    local size_y = maker[7]
+    local tMatrix = maker[3]:copy()
+    local size_x = maker[4]
+    local size_y = maker[5]
 
     
-  
-    pivotS[id.."-1"] = {pos_x - size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}--upleft
-    pivotS[id.."-2"] = {pos_x + size_x*0.5*scale_x,pos_y + size_y*0.5*scale_y}--upright
-    pivotS[id.."-3"] = {pos_x- size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}--downleft
-    pivotS[id.."-4"] = {pos_x + size_x*0.5*scale_x,pos_y - size_y*0.5*scale_y}--downright
-    if rotate ~= 0 then
-      pivotS[id.."-1"] = linear.rotate({pos_x,pos_y},pivotS[id.."-1"],-rotate)
-      pivotS[id.."-2"] = linear.rotate({pos_x,pos_y},pivotS[id.."-2"],-rotate)
-      pivotS[id.."-3"] = linear.rotate({pos_x,pos_y},pivotS[id.."-3"],-rotate)
-      pivotS[id.."-4"] = linear.rotate({pos_x,pos_y},pivotS[id.."-4"],-rotate)
-    end
+
+    pivotS[id.."-1"] = {pos_x - size_x/2,pos_y + size_y/2}--upleft
+    pivotS[id.."-2"] = {pos_x + size_x/2,pos_y + size_y/2}--upright
+    pivotS[id.."-3"] = {pos_x- size_x/2,pos_y - size_y/2}--downleft
+    pivotS[id.."-4"] = {pos_x + size_x/2,pos_y - size_y/2}--downright
+
+    pivotS[id.."-1"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-1"],tMatrix)
+    pivotS[id.."-2"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-2"],tMatrix)
+    pivotS[id.."-3"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-3"],tMatrix)
+    pivotS[id.."-4"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-4"],tMatrix)
   end
   if self.canvas_gbj ~= nil then
     self.canvas_gbj.graphics:acceptNew(self.canvas)
@@ -320,12 +320,14 @@ function Renderer:drawSpritesPivot()
     local y2 = renderRects[2][2]
     local xp = piv[1]
     local yp = piv[2]
-    local corrected_piv = {(xp - x1), (yp - y2)}
-    local rotated_pos = linear.rotate({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
+    local corrected_piv = {(xp - x1), (yp - y1)}
+    local rotated_pos = linear.centerVectorandMatrixMul({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, self.transform.tMatrix)
+    
     corrected_piv[1] = rotated_pos[1]
     corrected_piv[2] = rotated_pos[2]
-    love.graphics.rectangle("fill", corrected_piv[1], -corrected_piv[2], 1, 1)
-    love.graphics.print(id,corrected_piv[1], -corrected_piv[2])
+    love.graphics.rectangle("fill", corrected_piv[1], corrected_piv[2], 1, 1)
+    
+    love.graphics.print(id,corrected_piv[1], corrected_piv[2])
   end
 
   love.graphics.setCanvas(self.canvas)
@@ -348,15 +350,16 @@ function Renderer:drawALL()
     local y2 = renderRects[2][2]
     local xp = piv[1]
     local yp = piv[2]
-    local corrected_piv = {(xp - x1), (yp - y2), -piv[3], piv[4], piv[5], piv[6]*0.5, piv[7]*0.5}
-    local rotated_pos = linear.rotate({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, -self.transform.r)
+    local corrected_piv = {(xp - x1), (yp - y1), piv[3]:takeRotation(), piv[3]:takeXscale(), piv[3]:takeYscale(), piv[4]*0.5, piv[5]*0.5}
+    local rotated_pos = linear.centerVectorandMatrixMul({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, self.transform.tMatrix)
     corrected_piv[1] = rotated_pos[1]
     corrected_piv[2] = rotated_pos[2]
-    corrected_piv[3] = corrected_piv[3] - self.transform.r
+    corrected_piv[3] = corrected_piv[3] - self.transform.tMatrix:takeRotation()
+    
     love.graphics.draw(gbj.graphics.drawable, 
                        corrected_piv[1], 
-                       -corrected_piv[2], 
-                       -corrected_piv[3], 
+                       corrected_piv[2], 
+                       corrected_piv[3], 
                        corrected_piv[4], 
                        corrected_piv[5], 
                        corrected_piv[6], 

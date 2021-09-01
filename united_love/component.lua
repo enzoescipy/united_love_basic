@@ -11,6 +11,7 @@ local queue = require "united_love.packages.queue"
 local clone = require "united_love.packages.clone"
 local ID = require "united_love.packages.id"
 local linear = require "united_love.packages.linear"
+local Tmat = linear.Tmatrix
 
 require "united_love.renderer"
 
@@ -23,13 +24,13 @@ function Transform:new(ownergbj)
   self.type = "Transform"
 
   -- x y r xs ys are graphical variables connected to Graphical. component. DO NOT DELET THAT.
-  self.x = 0.0 -- x pos
-  self.y = 0.0 -- y pos
-  self.r = 0.0 -- rotation radian. *IMPORNANT* : rotation will be based on clock orientation == plus rotation. (left-handed)
-  self.xs = 1.0 -- x scale
-  self.ys = 1.0 -- y scale
+  self.x = 0.0 -- x pos. rightside plus.
+  self.y = 0.0 -- y pos. *IMPORTANT* : y pos will be UPSIDE MINUS.
+  --self.r = 0.0 -- rotation radian. *IMPORTNANT* : rotation will be based on clock orientation == plus rotation. (left-handed)
+  --self.xs = 1.0 -- x scale
+  --self.ys = 1.0 -- y scale
 
-  self.tMatrix = {{1,0},{0,1}} -- transformation_Matrix, which represent rotation and scaling. each are x, y basevector.
+  self.tMatrix = Tmat() -- transformation_Matrix, which represent rotation and scaling. each are x, y basevector.
 
   self.graphical = nil
 
@@ -38,76 +39,12 @@ function Transform:new(ownergbj)
   self.aimednameInv = {}
   self.aimednamecalled = {}
 
-  self.varnames = {"x", "y","r","xs","ys", "tMatrix"}
+  self.varnames = {"x", "y", "tMatrix"}
   self.varnamesInv = {}
   for i,v in ipairs(self.varnames) do
     self.varnamesInv[v] = i
   end
-  self.varnamesRecursion = {0,0,0,0,0,0}
-
-  local function xScale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-    local TMatrix = ownerTransform[ownerName]
-    local target_newvalue --now making!!!!
-
-    target_newvalue = linear.abs(TMatrix[1])
-  
-    targetTransform:changevar(targetName, target_newvalue)
-  end
-
-  local function yScale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-    local TMatrix = ownerTransform[ownerName]
-    local target_newvalue --now making!!!!
-
-    target_newvalue = linear.abs(TMatrix[2])
-  
-    targetTransform:changevar(targetName, target_newvalue)
-  end
-
-  local function rOtation(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-    local TMatrix = ownerTransform[ownerName]
-    local target_newvalue --now making!!!!
-
-    target_newvalue = - linear.toangle(TMatrix[1])
-  
-    targetTransform:changevar(targetName, target_newvalue)
-  end
-  
-  local function xsTMatrix(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-    local xs = ownerTransform[ownerName]
-    local target_newvalue --now making!!!!
-    local TMatrix_old = targetTransform[targetName]
-
-    target_newvalue = {linear.vectorScaling(TMatrix_old[1],xs),TMatrix_old[2]}
-  
-    targetTransform:changevar(targetName, target_newvalue)
-  end
-
-  local function ysTMatrix(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-    local ys = ownerTransform[ownerName]
-    local target_newvalue --now making!!!!
-    local TMatrix_old = targetTransform[targetName]
-
-    target_newvalue = {TMatrix_old[1],linear.vectorScaling(TMatrix_old[2],ys)}
-  
-    targetTransform:changevar(targetName, target_newvalue)
-  end
-
-  local function rTMatrix(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-    local r = ownerTransform[ownerName]
-    local target_newvalue --now making!!!!
-    local TMatrix_old = targetTransform[targetName]
-
-    target_newvalue = {linear.rotate({0,0},TMatrix_old[1],-r),
-                      linear.rotate({0,0},TMatrix_old[2],-r)}
-  
-    targetTransform:changevar(targetName, target_newvalue)
-  end
-  Transform.relation(self,"tMatrix",self,"xs",xScale)
-  Transform.relation(self,"tMatrix",self,"ys",yScale)
-  Transform.relation(self,"xs",self,"tMatrix",xsTMatrix)
-  Transform.relation(self,"ys",self,"tMatrix",ysTMatrix)
-  Transform.relation(self,"tMatrix",self,"r",rOtation)
-  Transform.relation(self,"r",self,"tMatrix",rTMatrix)
+  self.varnamesRecursion = {0,0,0}
 
 end
 
@@ -229,7 +166,6 @@ function Transform:changevar(varname, value)
 
   local index = self.varnamesInv[varname]
   self.varnamesRecursion[index] = self.varnamesRecursion[index] + 1
-  print(self.varnamesRecursion[index],index)
 
   if self.varnamesRecursion[index] >= 2 then
     for i=1,#self.varnamesRecursion do
@@ -237,10 +173,19 @@ function Transform:changevar(varname, value)
     end
     return true
   end
-
+  
   local oldvar = self[varname]
+  if type(oldvar) == "table" then
+    if oldvar.copy ~= nil then
+      oldvar = oldvar:copy()
+    else
+      return "Invaild_Value_Error"
+    end
+  end
   local newvar = value
   self[varname] = value
+  
+  
 
   
 
@@ -259,15 +204,11 @@ function Transform:changevar(varname, value)
   -- special changes for x and y to sending then Graphical Renderer.
   if self.graphical ~= nil then
     if varname == "x" then
-      Renderer.compensate(value,nil,nil,nil,nil,nil,nil, self.graphical.id)
+      Renderer.compensate(value,nil,nil,nil,nil, self.graphical.id)
     elseif varname == "y" then
-      Renderer.compensate(nil,value,nil,nil,nil,nil,nil, self.graphical.id)
-    elseif varname == "r" then
-      Renderer.compensate(nil,nil,value, nil,nil,nil,nil, self.graphical.id)
-    elseif varname == "xs" then
-      Renderer.compensate(nil,nil,nil, value,nil,nil,nil, self.graphical.id)
-    elseif varname == "ys" then
-      Renderer.compensate(nil,nil,nil, nil,value,nil,nil, self.graphical.id)
+      Renderer.compensate(nil,value,nil,nil,nil, self.graphical.id)
+    elseif varname == "tMatrix" then
+      Renderer.compensate(nil,nil,value,nil,nil, self.graphical.id)
     end
   end
 
@@ -340,6 +281,16 @@ function Transform.presetfunc.follow(ownerTransform,ownerName,targetTransform,ta
   target_newvalue = target_oldvalue - owner_oldvalue + owner_newvalue
 
   targetTransform:changevar(targetName, target_newvalue)
+end
+
+function Transform.presetfunc.followminus(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+  local owner_newvalue = ownerTransform[ownerName]
+  --local owner_oldvalue = owner_oldvalue
+  local target_newvalue --now making!!!!
+  local target_oldvalue = targetTransform[targetName]
+  target_newvalue = target_oldvalue + owner_oldvalue - owner_newvalue
+
+  targetTransform:changevar(targetName, target_newvalue)
 end 
 
 --
@@ -370,56 +321,63 @@ end
 function Transform.unitylikeMastertoSlave(master, slaves) --master to slave relations. make relation of transformation like unity's parent and children.
   
   for i,slav in ipairs(slaves) do
-    Transform.relation(master.transform, "x", slav.transform, "x", Transform.presetfunc.follow)
-    Transform.relation(master.transform, "y", slav.transform, "y", Transform.presetfunc.follow)
-
-    local function rotate(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-      local owner_newvalue = ownerTransform[ownerName]
-      --local owner_oldvalue = owner_oldvalue
-      local target_newvalue --now making!!!!
-      local target_oldvalue = targetTransform[targetName]      
-      
-      local master_pos = {ownerTransform.x, ownerTransform.y}
-      local slave_pos = {targetTransform.x, targetTransform.y}
-      local after_pos = linear.rotate(master_pos, slave_pos, -(owner_newvalue - owner_oldvalue))
-      
-      targetTransform:changevar("x", after_pos[1])
-      targetTransform:changevar("y", after_pos[2])
-    end
-    Transform.relation(master.transform, "r", slav.transform, "r", Transform.presetfunc.follow)
-    Transform.relation(master.transform, "r", slav.transform, "any", rotate)
+    slav.transform:newvar("x_r") -- relative_x.
+    slav.transform:newvar("y_r") -- relative_y.
+    -- tMatrix * {x_r-master.x,y_r-master.y} + {master.x,master.y} = {x,y} , ALWAYS WORKING.
+    slav.transform:changevar("x_r",slav.transform.x - master.transform.x)
+    slav.transform:changevar("y_r",slav.transform.y - master.transform.y)
     
-    local function xscale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-      local owner_newvalue = ownerTransform[ownerName]
-      --local owner_oldvalue = owner_oldvalue
-      local target_newvalue --now making!!!!
-      local target_oldvalue = targetTransform[targetName]  
 
-      local master_pos = {ownerTransform.x, ownerTransform.y}
-      local slave_pos = {targetTransform.x, targetTransform.y}
-      local after_pos = linear.angular_scale(master_pos, slave_pos, owner_newvalue / owner_oldvalue,1.0,ownerTransform.r)
-      
-      targetTransform:changevar("x", after_pos[1])
-      targetTransform:changevar("y", after_pos[2])
+    local function calculate_INVERSEreltoreal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+      local master_transform_tMatrix = master.transform.tMatrix
+      local master_realpos = {master.transform.x,master.transform.y}
+
+      local real_pos = {slav.transform.x,slav.transform.y}
+
+      local rel_pos_new = linear.centerVectorandMatrixMul(master_realpos,real_pos, master_transform_tMatrix:takeInverse())
+      slav.transform:changevar("x_r",rel_pos_new[1])
+      slav.transform:changevar("y_r",rel_pos_new[2])
     end
-    local function yscale(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-      local owner_newvalue = ownerTransform[ownerName]
-      --local owner_oldvalue = owner_oldvalue
-      local target_newvalue --now making!!!!
-      local target_oldvalue = targetTransform[targetName]  
 
-      local master_pos = {ownerTransform.x, ownerTransform.y}
-      local slave_pos = {targetTransform.x, targetTransform.y}
-      local after_pos = linear.angular_scale(master_pos, slave_pos, 1.0,owner_newvalue / owner_oldvalue,ownerTransform.r)
-      
-      targetTransform:changevar("x", after_pos[1])
-      targetTransform:changevar("y", after_pos[2])
+    local function calculate_reltoreal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+      local master_transform_tMatrix = master.transform.tMatrix
+      local master_realpos = {master.transform.x,master.transform.y}
+      local rel_pos = {slav.transform.x_r,slav.transform.y_r}
+      local real_pos_new = linear.centerVectorandMatrixMul(master_realpos,rel_pos, master_transform_tMatrix)
+      slav.transform:changevar("x",real_pos_new[1])
+      slav.transform:changevar("y",real_pos_new[2])
+    end
+
+    for i,v1 in ipairs({"x","y"}) do
+      Transform.relation(slav.transform,v1,slav.transform,"any", calculate_INVERSEreltoreal)
     end
     
-    Transform.relation(master.transform, "xs", slav.transform, "xs", Transform.presetfunc.follow)
-    Transform.relation(master.transform, "ys", slav.transform, "ys", Transform.presetfunc.follow)
-    Transform.relation(master.transform, "xs", slav.transform, "any", xscale)
-    Transform.relation(master.transform, "ys", slav.transform, "any", yscale)
+    for i,v1 in ipairs({"x","y"}) do
+      Transform.relation(master.transform, v1,slav.transform, "any", calculate_reltoreal)
+    end
+
+    for i,v1 in ipairs({"x","y"}) do
+      Transform.relation(slav.transform,"any",slav.transform, v1, calculate_reltoreal)
+    end
+
+
+    local function rel(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+      local owner_newvalue = ownerTransform[ownerName]
+      --local owner_oldvalue = owner_oldvalue
+      local target_newvalue --now making!!!!
+      local target_oldvalue = targetTransform[targetName]
+
+      local owner_delta = linear.matrixMul(owner_oldvalue,owner_newvalue)
+      target_newvalue = linear.matrixMul(owner_delta, target_oldvalue)
+
+      targetTransform:changevar(targetName, target_newvalue)
+    end
+
+    Transform.relation(master.transform, "tMatrix", slav.transform, "tMatrix", rel)
+    Transform.relation(master.transform, "tMatrix", slav.transform, "x", calculate_reltoreal)
+    Transform.relation(master.transform, "tMatrix", slav.transform, "y", calculate_reltoreal)
+
+
   end
 end
 -- #endregion
@@ -437,7 +395,7 @@ function Graphics:new(ownergbj, transform)
   if transform ~= nil then
     transform.graphical = self
     Renderer.createpivot(self.id)
-    Renderer.compensate(transform.x, transform.y,transform.r,transform.xs,transform.ys, nil, nil, self.id)
+    Renderer.compensate(transform.x, transform.y,transform.tMatrix,nil,nil, self.id)
   end
 end
 
@@ -448,7 +406,7 @@ function Graphics:newjpgImage(imgdirectory)
   self.drawable = love.graphics.newImage(imgdirectory)
   self.width =  self.drawable:getWidth()
   self.height = self.drawable:getHeight()
-  Renderer.compensate(nil, nil,nil,nil,nil, self.width, self.height, self.id)
+  Renderer.compensate(nil, nil,nil, self.width, self.height, self.id)
 end
 
 function Graphics:newText(text,sizepx)
@@ -458,14 +416,14 @@ function Graphics:newText(text,sizepx)
   self.drawable = love.graphics.newText(love.graphics.newFont(sizepx), text)
   self.width =  self.drawable:getWidth()
   self.height = self.drawable:getHeight()
-  Renderer.compensate(nil, nil,nil,nil,nil, self.width, self.height, self.id)
+  Renderer.compensate(nil, nil,nil, self.width, self.height, self.id)
 end
 
 function Graphics:acceptNew(drawable)
   self.drawable = drawable
   self.width =  drawable:getWidth()
   self.height = drawable:getHeight()
-  Renderer.compensate(nil, nil,nil,nil,nil, self.width, self.height, self.id)
+  Renderer.compensate(nil, nil,nil, self.width, self.height, self.id)
 end
 
 function Graphics:inactivate()
