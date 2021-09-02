@@ -129,7 +129,7 @@ function Renderer:recept_directly(gbj)
   table.insert(self.interest_id, id)
 end
 
-function Renderer:recept_automatically(gbj)
+function Renderer:recept(gbj)
   local dic = clone.dictionalize(gbj)
   for i,gbj in ipairs(dic) do
     if gbj.graphics == nil then

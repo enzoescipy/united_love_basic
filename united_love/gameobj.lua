@@ -7,6 +7,7 @@
 local Object = require "united_love.packages.classic"
 local clone = require "united_love.packages.clone"
 local parser = require "united_love.packages.parser"
+local linear = require "united_love.packages.linear"
 
 require "united_love.component"
 -- first, make class for all gameobjects.
@@ -157,3 +158,168 @@ function GameObject:detach(componentName)
     self.folder = nil
   end
 end
+--#region
+-- easymethod.
+
+--  self.folder easy-method.
+function GameObject:fInclude(gbj)
+  if self.folder == nil then
+    print("there is no folder.")
+    return -1
+  end
+
+  self.folder:include(gbj)
+end
+function GameObject:fExclude(gbj)
+  if self.folder == nil then
+    print("there is no folder.")
+    return -1
+  end
+
+  self.folder:exclude(gbj)
+end
+function GameObject:fShow()
+  -- DO NOT CHANGE result. if you want to change it, raise gameobj:copy() first .
+  if self.folder == nil then
+    print("there is no folder.")
+    return -1
+  end
+
+  return self.folder.gbjstore
+end
+
+-- self.transform easy-method.
+
+function GameObject:children_unite()
+  if self.folder == nil then
+    print("there is no folder.")
+    return -1
+  elseif self.transform == nil then
+    print("there is no transform.")
+    return -1
+  elseif #self.folder.gbjstore == 0 then
+    print("there is no children.")
+    return -1
+  end
+
+  Transform.unitylikeMastertoSlave(self, self.folder.gbjstore)
+end
+
+function GameObject:x(...) -- no value == show, 1 value == changevar.
+  if self.transform == nil then
+    print("there is no transform.")
+    return -1
+  end
+  local input = {...}
+  local position 
+  local poisition_name
+
+  if self.transform.master == nil then
+    position = self.transform.pos_abs
+    poisition_name = "pos_abs"
+  else
+    position = self.transform.pos
+    poisition_name = "pos"
+  end
+  if #input >= 2 then
+    print("too many arguments.")
+    return -1
+  elseif #input == 1 then
+    local value = input[1]
+    self.transform:changevar(poisition_name,{value,position[2]})
+  elseif #input == 0 then
+    return position[1]
+  end
+end
+
+function GameObject:y(...) -- no value == show, 1 value == changevar.
+  if self.transform == nil then
+    print("there is no transform.")
+    return -1
+  end
+  local input = {...}
+  local position 
+  local poisition_name
+
+  if self.transform.master == nil then
+    position = self.transform.pos_abs
+    poisition_name = "pos_abs"
+  else
+    position = self.transform.pos
+    poisition_name = "pos"
+  end
+  if #input >= 2 then
+    print("too many arguments.")
+    return -1
+  elseif #input == 1 then
+    local value = input[1]
+    self.transform:changevar(poisition_name,{position[1],value})
+  elseif #input == 0 then
+    return position[2]
+  end
+end
+
+function GameObject:pos(...) -- no value == show, 1 value == changevar.
+  if self.transform == nil then
+    print("there is no transform.")
+    return -1
+  end
+  local input = {...}
+  local position 
+  local poisition_name
+
+  if self.transform.master == nil then
+    position = self.transform.pos_abs
+    poisition_name = "pos_abs"
+  else
+    position = self.transform.pos
+    poisition_name = "pos"
+  end
+  if #input >= 2 then
+    print("too many arguments.")
+    return -1
+  elseif #input == 1 then
+    local value = input[1]
+    self.transform:changevar(poisition_name,value)
+  elseif #input == 0 then
+    return clone.cloneD1(position)
+  end
+end
+
+function GameObject:posAdd(deltapos) -- add deltapos to current position.
+  if self.transform == nil then
+    print("there is no transform.")
+    return -1
+  end
+  local position 
+  local poisition_name
+
+  if self.transform.master == nil then
+    position = self.transform.pos_abs
+    poisition_name = "pos_abs"
+  else
+    position = self.transform.pos
+    poisition_name = "pos"
+  end
+  self.transform:changevar(poisition_name,linear.vectorAdd(position, deltapos))
+end
+
+function GameObject:tmat(...) -- no value == show, 1 value == changevar.
+  if self.transform == nil then
+    print("there is no transform.")
+    return -1
+  end
+  local input = {...}
+  local tmatrix = self.transform.tMatrix
+  if #input >= 2 then
+    print("too many arguments.")
+    return -1
+  elseif #input == 1 then
+    local value = input[1]
+    self.transform:changevar("tMatrix",value)
+  elseif #input == 0 then
+    return tmatrix:copy()
+  end
+end
+
+--#endregion

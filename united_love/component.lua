@@ -23,6 +23,7 @@ function Transform:new(ownergbj)
   self.id = ownergbj.name..".".."transform"
   self.isAlive = true
   self.type = "Transform"
+  self.master = nil
 
   -- x y r xs ys are graphical variables connected to Graphical. component. DO NOT DELET THAT.
   self.pos_abs = {0,0}-- *IMPORTANT* : y pos will be UPSIDE MINUS.
@@ -87,17 +88,12 @@ function Transform:aim(transform)
     return
   end
   local index = self.aimednameInv[transform.id]
-  if transform.type == "Transform"  then
-    if  index == nil then
-      table.insert(self.aimlist, transform)
-      self.aimednameInv[transform.id] = #self.aimednameInv
-      self.aimednamecalled[transform.id] = 1
-    else
-      self.aimednamecalled[transform.id] = self.aimednamecalled[transform.id] + 1
-    end
+  if  index == nil then
+    table.insert(self.aimlist, transform)
+    self.aimednameInv[transform.id] = #self.aimednameInv
+    self.aimednamecalled[transform.id] = 1
   else
-    print("type error. in  transform:aim")
-    donotusecauseitisforerrorrasing[1]=0
+    self.aimednamecalled[transform.id] = self.aimednamecalled[transform.id] + 1
   end
 end
 
@@ -292,33 +288,31 @@ end
 --
 
 --Transform class method
+Transform.relation_record = {}
 function Transform.relation(transform1, var1, transform2, var2, willfunction)--transform1.var1 to transform2.var2, relation is willfunciton(oldvalue, newvalue, targetvalue)
+  local id = transform1.id..var1..transform2.id..var2
+  if Transform.relation_record[id] ~= nil then
+    print("relation already exist. order rejected.")
+    return
+  end
   transform1:aim(transform2)
   transform2:willreact(transform1, var1, var2, willfunction)
-  --[[
-  if transform1:recursionTestChange(var1) == true then
-    print("recursion detected. Transform:relation rejected.")
-    transform1:notaim(transform2)
-    transform2:notwillreact(transform1, var1, var2)
-  end
-  ]]
+  Transform.relation_record[id] = true
 end
 
+function Transform.relation_break(transform1, var1, transform2, var2)--transform1.var1 to transform2.var2, relation is willfunciton(oldvalue, newvalue, targetvalue)
+  local id = transform1.id..var1..transform2.id..var2
+  if Transform.relation_record[id] == nil then
+    print("relation not exist. order rejected.")
+    return
+  end
+  transform1:notaim(transform2)
+  transform2:notwillreact(transform1, var1, var2)
+  Transform.relation_record[id] = nil
+end
 function Transform.unitylikeMastertoSlave(master, slaves) --master to slave relations. make relation of transformation like unity's parent and children.
   
   for i,slav in ipairs(slaves) do
-    -- tMatrix * {x_r-master.pos_abs[1],y_r-master.pos_abs[2]} + {master.pos_abs[1],master.pos_abs[2]} = pos , ALWAYS WORKING.
-    --[[
-    local function calculate_relative_by_real(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
-      local master_transform_tMatrix = master.transform.tMatrix
-      local master_realpos = {master.transform.pos_abs[1],master.transform.pos_abs[2]}
-
-      local real_pos = {slav.transform.pos_abs[1],slav.transform.pos_abs[2]}
-
-      local rel_pos_new = linear.vectorAdd(linear.matVecMul(real_pos,master_transform_tMatrix),linear.plusminusFlip(master_realpos))
-      slav.transform:changevar("pos",{rel_pos_new[1],rel_pos_new[2]})
-    end
-    ]]
     local function calculate_real_by_relative(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
       local master_transform_tMatrix = master.transform.tMatrix
       local master_realpos = {master.transform.pos_abs[1],master.transform.pos_abs[2]}
@@ -346,6 +340,22 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
     Transform.relation(master.transform, "tMatrix", slav.transform, "pos_abs", calculate_real_by_relative)
 
     slav.transform:changevar("pos_abs",slav.transform.pos_abs)
+
+    slav.transform.master = master.transform.id
+  end
+end
+
+function Transform.unitylikeMastertoSlave_UNDO(master, slaves) --master to slave relations. make relation of transformation like unity's parent and children.
+  
+  for i,slav in ipairs(slaves) do
+
+    Transform.relation_break(slav.transform,"pos",slav.transform,"pos_abs")
+    Transform.relation_break(master.transform,"pos_abs",slav.transform, "pos_abs")
+
+    Transform.relation_break(master.transform, "tMatrix", slav.transform, "tMatrix")
+    Transform.relation_break(master.transform, "tMatrix", slav.transform, "pos_abs")
+
+    slav.transform.master = nil
   end
 end
 -- #endregion
