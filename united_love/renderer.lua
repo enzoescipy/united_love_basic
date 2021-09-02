@@ -84,7 +84,7 @@ end
 -- instance method
 --#region
 function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_gbj can be nil. 
-  -- equiped locational_gbj's transform.x, y, r will be rendering range rectangle's center position's x, y and rotation, xs and ys will be scaling of renderRect. 
+  -- equiped locational_gbj's transform.pos_abs[1], y, r will be rendering range rectangle's center position's x, y and rotation, xs and ys will be scaling of renderRect. 
   -- whatever you change xs or ys, xs and ys will be adjusted same, because of distortion of screen canvas.
   self.locational_gbj = locational_gbj
   self.canvas_gbj = canvas_gbj
@@ -105,8 +105,7 @@ function Renderer:equip(locational_gbj,canvas_gbj,width, height) -- locational_g
     Renderer.Master:recept_directly(canvas_gbj)
   else
     self.transform = {}
-    self.transform.x = 0
-    self.transform.y = 0
+    self.transform.pos_abs = {0,0}
     self.transform.tMatrix = Tmatrix()
   end
 end
@@ -158,21 +157,13 @@ function Renderer:exclude(gbj)
   self.interest_id = tab
 end
 
-function Renderer:scaledW()
-  return self.width * self.transform.tMatrix:takeXscale()
-end
-
-function Renderer:scaledH()
-  return self.height * self.transform.tMatrix:takeYscale()
-end
-
 function Renderer:renderRectpivotCalculate()
-  local center_x = self.transform.x
-  local center_y = self.transform.y
-  local x1 = center_x - self:scaledW() /2
-  local x2 = center_x + self:scaledW() /2
-  local y1 = center_y - self:scaledH() /2
-  local y2 = center_y + self:scaledH() /2
+  local center_x = self.transform.pos_abs[1]
+  local center_y = self.transform.pos_abs[2]
+  local x1 = center_x - self.width /2
+  local x2 = center_x + self.width /2
+  local y1 = center_y - self.height /2
+  local y2 = center_y + self.height /2
 
   local renderRect_pivots = {{x1,y2},
                             {x2,y2},
@@ -208,21 +199,22 @@ function Renderer:refresh()
   
     local pos_x = maker[1]
     local pos_y = maker[2]
+    local pos = {pos_x,pos_y}
     local tMatrix = maker[3]:copy()
     local size_x = maker[4]
     local size_y = maker[5]
 
     
 
-    pivotS[id.."-1"] = {pos_x - size_x/2,pos_y + size_y/2}--upleft
-    pivotS[id.."-2"] = {pos_x + size_x/2,pos_y + size_y/2}--upright
-    pivotS[id.."-3"] = {pos_x- size_x/2,pos_y - size_y/2}--downleft
-    pivotS[id.."-4"] = {pos_x + size_x/2,pos_y - size_y/2}--downright
+    pivotS[id.."-1"] = {- size_x/2, size_y/2}--upleft
+    pivotS[id.."-2"] = { size_x/2, size_y/2}--upright
+    pivotS[id.."-3"] = { -size_x/2, - size_y/2}--downleft
+    pivotS[id.."-4"] = { size_x/2, - size_y/2}--downright
 
-    pivotS[id.."-1"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-1"],tMatrix)
-    pivotS[id.."-2"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-2"],tMatrix)
-    pivotS[id.."-3"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-3"],tMatrix)
-    pivotS[id.."-4"] = linear.centerVectorandMatrixMul({pos_x,pos_y},pivotS[id.."-4"],tMatrix)
+    pivotS[id.."-1"] = linear.vectorAdd(linear.matVecMul(pivotS[id.."-1"],tMatrix),pos)
+    pivotS[id.."-2"] = linear.vectorAdd(linear.matVecMul(pivotS[id.."-2"],tMatrix),pos)
+    pivotS[id.."-3"] = linear.vectorAdd(linear.matVecMul(pivotS[id.."-3"],tMatrix),pos)
+    pivotS[id.."-4"] = linear.vectorAdd(linear.matVecMul(pivotS[id.."-4"],tMatrix),pos)
   end
   if self.canvas_gbj ~= nil then
     self.canvas_gbj.graphics:acceptNew(self.canvas)
@@ -233,7 +225,7 @@ end
 function Renderer:renderRectpivotDo(func)
   for id, valuebox in pairs(self.interest_pivotdata) do
     local renderer_Rect_pivot = self:renderRectpivotCalculate()
-    if linear.isPointInsideBox({self.transform.x,self.transform.y},renderer_Rect_pivot[1],renderer_Rect_pivot[2],renderer_Rect_pivot[4],renderer_Rect_pivot[3]) == true then
+    if linear.isPointInsideBox({self.transform.pos_abs[1],self.transform.pos_abs[2]},renderer_Rect_pivot[1],renderer_Rect_pivot[2],renderer_Rect_pivot[4],renderer_Rect_pivot[3]) == true then
       func(id)
     end
   end
@@ -243,7 +235,7 @@ function Renderer:renderRectIdDo(func)
   local idgetTable = {}
   
   for i=1,#self.interest_id do
-    
+    --12 24 43 31
 
     local id = self.interest_id[i]
     
@@ -252,59 +244,27 @@ function Renderer:renderRectIdDo(func)
     table.insert(pivots, self.interest_pivotdata[id.."-2"])
     table.insert(pivots, self.interest_pivotdata[id.."-3"])
     table.insert(pivots, self.interest_pivotdata[id.."-4"])
+    local renderer_pivots = self:renderRectpivotCalculate()
 
-    local renderer_Rect_pivot = self:renderRectpivotCalculate()
-
-
-    -- if at least one pivot is inside the render_rect or 
-    for j=1,4 do
-      local x = pivots[j][1]
-      local y = pivots[j][2]
-      if linear.isPointInsideBox({x,y},renderer_Rect_pivot[1],renderer_Rect_pivot[2],renderer_Rect_pivot[4],renderer_Rect_pivot[3]) == true then
-        table.insert(idgetTable, id)
-        goto continue
-      end
+    -- check if renderRect and spriteRect are overwrapping each other, by using Area-vectorpair.
+    local renderRect = linear.point4ToRectanglularArea(renderer_pivots[1],renderer_pivots[2],renderer_pivots[3],renderer_pivots[4])
+    local spriteRect = linear.point4ToRectanglularArea(pivots[1],pivots[2],pivots[3],pivots[4])
+    if linear.isvectorPairOverwrappedTrue(renderRect, spriteRect) == true then
+      func(id)
     end
-
-    
-    -- if sprite edge and render_rect edge are crossing each other.
-    local pivindex = {{1,2},{2,4},{4,3},{3,1}} 
-    for p=1,4 do
-      for r=1,4 do
-        local pnum = pivindex[p]
-        local rnum = pivindex[r]
-        local l1 = pivots[pnum[1]]
-        local l2 = pivots[pnum[2]]
-        local m1 = renderer_Rect_pivot[rnum[1]]
-        local m2 = renderer_Rect_pivot[rnum[2]]
-        if linear.islineCrossing(l1,l2,m1,m2) == true then
-          table.insert(idgetTable, id)
-          goto continue
-        end
-      end
-    end
-    -- ... sprite_rect is so big that render_rect is inside of the sprite_rect.
-    if linear.isPointInsideBox(self:renderRectpivotCalculate()[1],pivots[1],pivots[2],pivots[4],pivots[3]) == true then
-      table.insert(idgetTable, id)
-      goto continue
-    end
-    
-    --print(renderer_Rect_pivot[1][1],renderer_Rect_pivot[1][2],renderer_Rect_pivot[2][1],renderer_Rect_pivot[2][2],renderer_Rect_pivot[3][1],renderer_Rect_pivot[3][2])
-    ::continue::
-  end
-  for num, id in ipairs(idgetTable) do
-    func(id)
   end
 end
 
 function Renderer:drawboundray(thickness)
+  local scaled_w = (self.width * self.transform.tMatrix:takeXscale())
+  local scaled_h = (self.height * self.transform.tMatrix:takeYscale())
   love.graphics.setCanvas(self.canvas)
   love.graphics.push()
-    love.graphics.scale(self.canvas_width / self:scaledW(), self.canvas_height / self:scaledH())
-    love.graphics.rectangle("fill", 0,0,self:scaledW(),thickness)
-    love.graphics.rectangle("fill", 0,0,thickness,self:scaledH())
-    love.graphics.rectangle("fill", 0,self:scaledH() - thickness,self:scaledW(),self:scaledH())
-    love.graphics.rectangle("fill", self:scaledW() - thickness,0,self:scaledW(),self:scaledH())
+  love.graphics.scale(self.canvas_width / scaled_w ,self.canvas_height / scaled_h)
+    love.graphics.rectangle("fill", 0,0,scaled_w,thickness)
+    love.graphics.rectangle("fill", 0,0,thickness,scaled_h)
+    love.graphics.rectangle("fill", 0,scaled_h - thickness,scaled_w,scaled_h)
+    love.graphics.rectangle("fill", scaled_w - thickness,0,scaled_w,scaled_h)
   love.graphics.pop()
   love.graphics.setCanvas()
 end
@@ -312,19 +272,16 @@ end
 function Renderer:drawSpritesPivot()
   local function idDo(id)
     local piv = self.interest_pivotdata[id]
-    local renderer_piv = self:renderRectpivotCalculate()
-    local renderRects = {renderer_piv[3],renderer_piv[2]}
-    local x1 = renderRects[1][1]
-    local x2 = renderRects[2][1]
-    local y1 = renderRects[1][2]
-    local y2 = renderRects[2][2]
     local xp = piv[1]
     local yp = piv[2]
-    local corrected_piv = {(xp - x1), (yp - y1)}
-    local rotated_pos = linear.centerVectorandMatrixMul({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, self.transform.tMatrix)
-    
-    corrected_piv[1] = rotated_pos[1]
-    corrected_piv[2] = rotated_pos[2]
+    local pos = {xp-self.transform.pos_abs[1], yp-self.transform.pos_abs[2]}
+
+    local corrected_piv = {linear.innerproduct(pos,self.transform.tMatrix.xVector),
+                          linear.innerproduct(pos,self.transform.tMatrix.yVector)}
+
+    corrected_piv[1] = self.width/2 + corrected_piv[1] 
+    corrected_piv[2] = self.height/2 + corrected_piv[2]
+
     love.graphics.rectangle("fill", corrected_piv[1], corrected_piv[2], 1, 1)
     
     love.graphics.print(id,corrected_piv[1], corrected_piv[2])
@@ -332,7 +289,8 @@ function Renderer:drawSpritesPivot()
 
   love.graphics.setCanvas(self.canvas)
   love.graphics.push()
-    love.graphics.scale(self.canvas_width / self:scaledW(), self.canvas_height / self:scaledH())
+  love.graphics.scale(self.canvas_width / (self.width * self.transform.tMatrix:takeXscale()), 
+  self.canvas_height / (self.height * self.transform.tMatrix:takeYscale()))
     self:renderRectpivotDo(idDo)
   love.graphics.pop()
   love.graphics.setCanvas()
@@ -342,18 +300,16 @@ function Renderer:drawALL()
   local function drawpos(id)
     local gbj = GameObject:find(GameObject:nameparse(id))
     local piv = Renderer.renderTarget_pivotmaker[id]
-    local renderer_piv = self:renderRectpivotCalculate()
-    local renderRects = {renderer_piv[3],renderer_piv[2]}
-    local x1 = renderRects[1][1]
-    local x2 = renderRects[2][1]
-    local y1 = renderRects[1][2]
-    local y2 = renderRects[2][2]
     local xp = piv[1]
     local yp = piv[2]
-    local corrected_piv = {(xp - x1), (yp - y1), piv[3]:takeRotation(), piv[3]:takeXscale(), piv[3]:takeYscale(), piv[4]*0.5, piv[5]*0.5}
-    local rotated_pos = linear.centerVectorandMatrixMul({(x1+x2)/2, (y1+y2)/2}, {corrected_piv[1],corrected_piv[2]}, self.transform.tMatrix)
-    corrected_piv[1] = rotated_pos[1]
-    corrected_piv[2] = rotated_pos[2]
+
+    local pos = {xp-self.transform.pos_abs[1], yp-self.transform.pos_abs[2]}
+
+    local corrected_piv = {linear.innerproduct(pos,self.transform.tMatrix.xVector),
+                          linear.innerproduct(pos,self.transform.tMatrix.yVector), 
+                          piv[3]:takeRotation(), piv[3]:takeXscale(), piv[3]:takeYscale(), piv[4]*0.5, piv[5]*0.5}
+    corrected_piv[1] = self.width/2 + corrected_piv[1] 
+    corrected_piv[2] = self.height/2 + corrected_piv[2]
     corrected_piv[3] = corrected_piv[3] - self.transform.tMatrix:takeRotation()
     love.graphics.draw(gbj.graphics.drawable, 
                        corrected_piv[1], 
@@ -369,7 +325,8 @@ function Renderer:drawALL()
 
   love.graphics.setCanvas(self.canvas)
   love.graphics.push()
-    love.graphics.scale(self.canvas_width / self:scaledW(), self.canvas_height / self:scaledH())
+    love.graphics.scale(self.canvas_width / (self.width * self.transform.tMatrix:takeXscale()), 
+                        self.canvas_height / (self.height * self.transform.tMatrix:takeYscale()))
     self:renderRectIdDo(drawpos)
   love.graphics.pop()
   love.graphics.setCanvas()

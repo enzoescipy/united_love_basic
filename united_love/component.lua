@@ -12,6 +12,7 @@ local clone = require "united_love.packages.clone"
 local ID = require "united_love.packages.id"
 local linear = require "united_love.packages.linear"
 local Tmat = linear.Tmatrix
+local clone = require "united_love.packages.clone"
 
 require "united_love.renderer"
 
@@ -24,11 +25,8 @@ function Transform:new(ownergbj)
   self.type = "Transform"
 
   -- x y r xs ys are graphical variables connected to Graphical. component. DO NOT DELET THAT.
-  self.x = 0.0 -- x pos. rightside plus.
-  self.y = 0.0 -- y pos. *IMPORTANT* : y pos will be UPSIDE MINUS.
-  --self.r = 0.0 -- rotation radian. *IMPORTNANT* : rotation will be based on clock orientation == plus rotation. (left-handed)
-  --self.xs = 1.0 -- x scale
-  --self.ys = 1.0 -- y scale
+  self.pos_abs = {0,0}-- *IMPORTANT* : y pos will be UPSIDE MINUS.
+  self.pos = {0,0}
 
   self.tMatrix = Tmat() -- transformation_Matrix, which represent rotation and scaling. each are x, y basevector.
 
@@ -39,7 +37,7 @@ function Transform:new(ownergbj)
   self.aimednameInv = {}
   self.aimednamecalled = {}
 
-  self.varnames = {"x", "y", "tMatrix"}
+  self.varnames = {"pos_abs","pos", "tMatrix"}
   self.varnamesInv = {}
   for i,v in ipairs(self.varnames) do
     self.varnamesInv[v] = i
@@ -176,10 +174,10 @@ function Transform:changevar(varname, value)
   
   local oldvar = self[varname]
   if type(oldvar) == "table" then
-    if oldvar.copy ~= nil then
+    if oldvar.type == "Matrix" then
       oldvar = oldvar:copy()
     else
-      return "Invaild_Value_Error"
+      oldvar = clone.cloneD1(oldvar)
     end
   end
   local newvar = value
@@ -203,11 +201,8 @@ function Transform:changevar(varname, value)
 
   -- special changes for x and y to sending then Graphical Renderer.
   if self.graphical ~= nil then
-    if varname == "x" then
-      Renderer.compensate(value,nil,nil,nil,nil, self.graphical.id)
-    elseif varname == "y" then
-      print(value)
-      Renderer.compensate(nil,value,nil,nil,nil, self.graphical.id)
+    if varname == "pos_abs" then
+      Renderer.compensate(value[1],value[2],nil,nil,nil, self.graphical.id)
     elseif varname == "tMatrix" then
       Renderer.compensate(nil,nil,value,nil,nil, self.graphical.id)
     end
@@ -262,7 +257,7 @@ function Transform:explode()
 end
 
 --Transform.presetfunc
-Transform.presetfunc = {"x", "y","r","xs","ys"}
+Transform.presetfunc = {}
 function Transform.presetfunc.equal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
   local owner_newvalue = ownerTransform[ownerName]
   --local owner_oldvalue = owner_oldvalue
@@ -297,8 +292,6 @@ end
 --
 
 --Transform class method
-Transform.basicVarNames = {"x", "y","r","xs","ys"}
-
 function Transform.relation(transform1, var1, transform2, var2, willfunction)--transform1.var1 to transform2.var2, relation is willfunciton(oldvalue, newvalue, targetvalue)
   transform1:aim(transform2)
   transform2:willreact(transform1, var1, var2, willfunction)
@@ -311,64 +304,31 @@ function Transform.relation(transform1, var1, transform2, var2, willfunction)--t
   ]]
 end
 
-function Transform.doRelationAll(master, slaves, relationfunc) --master to slaves relation. slaves = {skave1gbj, slave2gbj, ...}
-  for i,gbj in ipairs(slaves) do
-    for i,name in ipairs(Transform.basicVarNames)do
-      Transform.relation(master.transform, name, gbj.transform, name, relationfunc)
-    end
-  end
-end
-
 function Transform.unitylikeMastertoSlave(master, slaves) --master to slave relations. make relation of transformation like unity's parent and children.
   
   for i,slav in ipairs(slaves) do
-    slav.transform:newvar("x_r") -- relative_x.
-    slav.transform:newvar("y_r") -- relative_y.
-    -- tMatrix * {x_r-master.x,y_r-master.y} + {master.x,master.y} = {x,y} , ALWAYS WORKING.
-
-    local function calculate_INVERSEreltoreal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    -- tMatrix * {x_r-master.pos_abs[1],y_r-master.pos_abs[2]} + {master.pos_abs[1],master.pos_abs[2]} = pos , ALWAYS WORKING.
+    --[[
+    local function calculate_relative_by_real(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
       local master_transform_tMatrix = master.transform.tMatrix
-      local master_realpos = {master.transform.x,master.transform.y}
+      local master_realpos = {master.transform.pos_abs[1],master.transform.pos_abs[2]}
 
-      local real_pos = {slav.transform.x,slav.transform.y}
+      local real_pos = {slav.transform.pos_abs[1],slav.transform.pos_abs[2]}
 
-      local rel_pos_new = linear.centerVectorandMatrixMul(master_realpos,real_pos, master_transform_tMatrix:takeInverse())
-      slav.transform:changevar("x_r",rel_pos_new[1])
-      slav.transform:changevar("y_r",rel_pos_new[2])
+      local rel_pos_new = linear.vectorAdd(linear.matVecMul(real_pos,master_transform_tMatrix),linear.plusminusFlip(master_realpos))
+      slav.transform:changevar("pos",{rel_pos_new[1],rel_pos_new[2]})
     end
-    local function calculate_reltoreal(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
+    ]]
+    local function calculate_real_by_relative(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
       local master_transform_tMatrix = master.transform.tMatrix
-      local master_realpos = {master.transform.x,master.transform.y}
-      local rel_pos = {slav.transform.x_r,slav.transform.y_r}
-      local real_pos_new = linear.centerVectorandMatrixMul(master_realpos,rel_pos, master_transform_tMatrix)
-      slav.transform:changevar("x",real_pos_new[1])
-      slav.transform:changevar("y",real_pos_new[2])
+      local master_realpos = {master.transform.pos_abs[1],master.transform.pos_abs[2]}
+      local rel_pos = {slav.transform.pos[1],slav.transform.pos[2]}
+      local real_pos_new = linear.vectorAdd(linear.matVecMul(rel_pos,master_transform_tMatrix), master_realpos)
+      slav.transform:changevar("pos_abs",{real_pos_new[1],real_pos_new[2]})
     end
 
-
-
-    for i,v1 in ipairs({"x","y"}) do
-      for j,v2 in ipairs({"x_r","y_r"}) do
-        Transform.relation(slav.transform,v1,slav.transform,v2, calculate_INVERSEreltoreal)
-        
-      end
-      
-    end
-    
-    for i,v1 in ipairs({"x","y"}) do
-      for j,v2 in ipairs({"x_r","y_r"}) do
-        Transform.relation(master.transform, v1,slav.transform, v2, calculate_reltoreal)
-      end
-      
-    end
-
-    for i,v1 in ipairs({"x_r","y_r"}) do
-      for j,v2 in ipairs({"x_","y_"}) do
-        Transform.relation(slav.transform,v1,slav.transform, v2, calculate_reltoreal)
-      end
-      
-    end
-
+    Transform.relation(slav.transform,"pos",slav.transform,"pos_abs", calculate_real_by_relative)
+    Transform.relation(master.transform,"pos_abs",slav.transform, "pos_abs", calculate_real_by_relative)
 
     local function rel(ownerTransform,ownerName,targetTransform,targetName,owner_oldvalue)
       local owner_newvalue = ownerTransform[ownerName]
@@ -383,10 +343,9 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
     end
 
     Transform.relation(master.transform, "tMatrix", slav.transform, "tMatrix", rel)
-    Transform.relation(master.transform, "tMatrix", slav.transform, "x", calculate_reltoreal)
-    Transform.relation(master.transform, "tMatrix", slav.transform, "y", calculate_reltoreal)
+    Transform.relation(master.transform, "tMatrix", slav.transform, "pos_abs", calculate_real_by_relative)
 
-    slav.transform:changevar("x",slav.transform.x)
+    slav.transform:changevar("pos_abs",slav.transform.pos_abs)
   end
 end
 -- #endregion
@@ -404,7 +363,7 @@ function Graphics:new(ownergbj, transform)
   if transform ~= nil then
     transform.graphical = self
     Renderer.createpivot(self.id)
-    Renderer.compensate(transform.x, transform.y,transform.tMatrix,nil,nil, self.id)
+    Renderer.compensate(transform.pos_abs[1], transform.pos_abs[2],transform.tMatrix,nil,nil, self.id)
   end
 end
 

@@ -45,4 +45,42 @@ function clone.clone(tab)
 	return copy
 end
 
+function clone.cloneD1(tab)
+  local result = {}
+  for i,v in ipairs(tab) do
+    table.insert(result, v)
+  end
+  return result
+end
+
+function clone.inspect(t)
+  local function str_takeout(tab)
+    local collection = {}
+    table.insert(collection,"{")
+    for i,v in pairs(tab) do
+      if ((i <= #tab) and (0 <= i) and (tonumber(tostring(i),10) ~= nil ) ) ~= true then
+        table.insert(collection, "\n ["..i.."]"..":")
+      end
+      
+      if type(v) == "table" then
+        
+        local subcollection = str_takeout(v)
+        for i,k in pairs(subcollection) do
+          table.insert(collection, k)
+        end
+     else
+      if #tab ~= 1 then
+        table.insert(collection,",")
+      end
+      
+      table.insert(collection, v)
+     end
+    end
+    table.insert(collection,"}")
+    return collection
+  end
+
+  print(table.concat(str_takeout(t)))
+end
+
 return clone

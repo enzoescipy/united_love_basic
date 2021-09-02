@@ -16,27 +16,32 @@ Main = require "test_gameobjList"
 
 Banana = GameObject:find("Banana")
 Camera = GameObject:find("Camera")
-
 function love.load()
   Graphics.setWindowSize(1024,640)
 end
 
 function love.update(dt)
-  --Banana.transform:changevar("tMatrix",Banana.transform.tMatrix:getRotated(dt))
-  --Banana.transform:changevar("y", Banana.transform.y + dt*100)
-end
+  
+  if love.keyboard.isDown("up") == true then
+    Camera.transform:changevar("pos_abs", linear.vectorAdd(Camera.transform.pos_abs,linear.vectorScaling(Camera.transform.tMatrix.yVector,-500*dt)))
+  elseif love.keyboard.isDown("down") == true then
+    Camera.transform:changevar("pos_abs", linear.vectorAdd(Camera.transform.pos_abs,linear.vectorScaling(Camera.transform.tMatrix.yVector,500*dt)))
+  end
 
+  if love.keyboard.isDown("right") == true then
+    Camera.transform:changevar("tMatrix",Camera.transform.tMatrix:getRotated(5*dt))
+  elseif love.keyboard.isDown("left") == true then
+    Camera.transform:changevar("tMatrix",Camera.transform.tMatrix:getRotated(-5*dt))
+  end 
+  
+  
+end
+--[[
+function love.wheelmoved(dx,dy)
+  print(dy)
+  Camera.transform:changevar("tMatrix",Camera.transform.tMatrix:getEvenlyscaled(1.0+dy*0.01))
+end
+]]
 function love.draw()
   Renderer.showFrame()
 end
-
---[[
-print("*")
-local testgbj = GameObject("testgbj","T")
-for i = 1,10 do
-  print(testgbj.transform.tMatrix:takeRotation())
-  print(testgbj.transform.tMatrix.xVector[1],testgbj.transform.tMatrix.xVector[2])
-  testgbj.transform.tMatrix = testgbj.transform.tMatrix:getRotated(0.01)
-end
-print("*")
-]]
