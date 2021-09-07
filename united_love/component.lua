@@ -339,7 +339,7 @@ function Transform.unitylikeMastertoSlave(master, slaves) --master to slave rela
     Transform.relation(master.transform, "tMatrix", slav.transform, "tMatrix", rel)
     Transform.relation(master.transform, "tMatrix", slav.transform, "pos_abs", calculate_real_by_relative)
 
-    slav.transform:changevar("pos_abs",slav.transform.pos_abs)
+    slav.transform:changevar("pos",slav.transform.pos_abs)
 
     slav.transform.master = master.transform.id
   end
