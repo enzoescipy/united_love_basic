@@ -1,6 +1,6 @@
-local linear = require "united_love.packages.linear"
+local linear = require "packages.united_love.packages.linear"
 local Tmatrix = linear.Tmatrix
-local clone = require "united_love.packages.clone"
+local clone = require "packages.united_love.packages.clone"
 --
 -- renderer
 --
@@ -8,7 +8,7 @@ local clone = require "united_love.packages.clone"
 -- 
 -- where .graphics component's drawables are render.
 --
-local Object = require "united_love.packages.classic"
+local Object = require "packages.united_love.packages.classic"
 
 --
 --

@@ -4,12 +4,12 @@
 -- require order = 3
 -- where gameobj are decleared.
 --
-local Object = require "united_love.packages.classic"
-local clone = require "united_love.packages.clone"
-local parser = require "united_love.packages.parser"
-local linear = require "united_love.packages.linear"
+local Object = require "packages.united_love.packages.classic"
+local clone = require "packages.united_love.packages.clone"
+local parser = require "packages.united_love.packages.parser"
+local linear = require "packages.united_love.packages.linear"
 
-require "united_love.component"
+require "packages.united_love.component"
 -- first, make class for all gameobjects.
 GameObject = Object:extend()
 

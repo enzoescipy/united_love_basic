@@ -6,15 +6,15 @@
 -- its method name will like Transform => gameobj.transform
 --
 
-local Object = require "united_love.packages.classic"
-local queue = require "united_love.packages.queue"
-local clone = require "united_love.packages.clone"
-local ID = require "united_love.packages.id"
-local linear = require "united_love.packages.linear"
+local Object = require "packages.united_love.packages.classic"
+local queue = require "packages.united_love.packages.queue"
+local clone = require "packages.united_love.packages.clone"
+local ID = require "packages.united_love.packages.id"
+local linear = require "packages.united_love.packages.linear"
 local Tmat = linear.Tmatrix
-local clone = require "united_love.packages.clone"
+local clone = require "packages.united_love.packages.clone"
 
-require "united_love.renderer"
+require "packages.united_love.renderer"
 
 -- Transform
 -- #region

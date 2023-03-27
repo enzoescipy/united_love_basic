@@ -1,4 +1,4 @@
-local Object = require "united_love.packages.classic"
+local Object = require "packages.united_love.packages.classic"
 
 local linear = {}
 

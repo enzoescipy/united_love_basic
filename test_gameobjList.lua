@@ -1,4 +1,4 @@
-local parser = require "united_love.packages.parser"
+local parser = require "packages.united_love.packages.parser"
 
 -- if you want to create new game object, there is two ways of that.
 --
@@ -15,7 +15,7 @@ local parser = require "united_love.packages.parser"
 -- and it may cause serious memory overflow problem.
 
 
-require "united_love.united_love" 
+require "packages.united_love.united_love" 
 
 
 -- if your united_love module folder is in the /package folder, please like this;

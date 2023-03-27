@@ -1,4 +1,4 @@
-local linear = require "united_love.packages.linear"
+local linear = require "packages.united_love.packages.linear"
 --
 -- gameobj
 -- 
