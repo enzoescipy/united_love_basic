@@ -31,7 +31,7 @@ function linear.innerproduct(v1,v2)
     return v1[1]*v2[1] + v1[2]*v2[2]
 end
 
-function linear.pointToPointDist(p1,p2)
+function linear.pointToPointDist(p1,p2) -- just calculate the distance between the points.
     return math.sqrt((p1[1]-p2[1]) * (p1[1]-p2[1]) + (p1[2]-p2[2]) * (p1[2]-p2[2]))
 end
 
@@ -39,10 +39,18 @@ function linear.pointToPointDistSquared(p1,p2) -- faster ver. of linear.pointToP
     return (p1[1]-p2[1]) * (p1[1]-p2[1]) + (p1[2]-p2[2]) * (p1[2]-p2[2])
 end
 
-function linear.islineCrossing(l_start,l_end,m_start,m_end,...) -- each vars are table {1.0,2.3, ... } represent a vector.
+--- think the two lines of l_start ~ l_end, m_start ~ m_end.
+--- if two lines overlapping each others, than return true. 
+--- for any other cases, false.
+--- @param l_start table -- {float, float}
+---@param l_end table -- {float, float}
+---@param m_start table -- {float, float}
+---@param m_end table -- {float, float}
+--- @return  boolean isoverlapping
+function linear.islineCrossing(l_start,l_end,m_start,m_end) -- each vars are table {1.0,2.3, ... } represent a vector.
     -- check if two lines crossing each other.
     if type(l_start) ~= "table" or type(l_end) ~= "table" or type(m_start) ~= "table" or type(m_end) ~= "table" then
-        return "type err."
+        error("type err.")
     end
     local faultnum
     local x
@@ -145,14 +153,17 @@ function linear.islineCrossing(l_start,l_end,m_start,m_end,...) -- each vars are
     return false
 end
 
+
+---# linear.point2toline
+--- - change two points to y=ax+b.
+--- - then retur a, b.
+---@param l_start table -- {float, float} needed
+---@param l_end table -- {float, float} needed
+---@return -- {a,b} will be the result.
 function linear.point2toline(l_start,l_end) -- returns if result is ax+b => {a,b}
-    -- check if two lines crossing each other.
     if type(l_start) ~= "table" or type(l_end) ~= "table" then
-        return "type err."
+        error("type err.")
     end
-    local faultnum
-    local x
-    local y
     local l_slope = (l_end[2] - l_start[2]) / (l_end[1] - l_start[1])
     local abs_lsp = math.abs(l_slope)
     if abs_lsp == INF then
@@ -164,6 +175,14 @@ function linear.point2toline(l_start,l_end) -- returns if result is ax+b => {a,b
     end
 end
 
+
+---# linear.lineToPointDist 
+---sdf
+---@param point any
+---@param l_start any
+---@param l_end any
+---@param ... unknown
+---@return unknown
 function linear.lineToPointDist(point, l_start, l_end,...)
     local error_tolerate = {...}
     error_tolerate = error_tolerate[1]
@@ -172,7 +191,7 @@ function linear.lineToPointDist(point, l_start, l_end,...)
     end
 
     if type(l_start) ~= "table" or type(l_end) ~= "table" or type(point) ~= "table" then
-        return "type err."
+        error("type err.")
     end
     local x_delta = math.abs(l_end[1] - l_start[1])
     local y_delta = math.abs(l_end[2] - l_start[2])
